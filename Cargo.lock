@@ -118,6 +118,12 @@ name = "bunpo"
 version = "0.1.1"
 
 [[package]]
+name = "bunpo"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c009f49a0a478a61d51abe9c59bb24649331ca0a7a92f5c47a853d9442cc1f50"
+
+[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -874,7 +880,7 @@ name = "jmdict-fast"
 version = "0.1.1"
 dependencies = [
  "anyhow",
- "bunpo",
+ "bunpo 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "criterion",
  "deunicode",
  "flate2",
