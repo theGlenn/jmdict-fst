@@ -1,38 +1,40 @@
 # jmdict-fst
 
-A monorepo containing blazing-fast Japanese dictionary and grammar tools.
+A monorepo for **high-performance Japanese dictionary and grammar tools**.
 
 [![jmdict-fast](https://img.shields.io/crates/v/jmdict-fast.svg)](https://crates.io/crates/jmdict-fast)
 [![bunpo](https://img.shields.io/crates/v/bunpo.svg)](https://crates.io/crates/bunpo)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## Crates
+## Overview
 
-This repository contains two independently-published crates:
+This repository includes two Rust crates, published independently:
 
 ### 📚 [jmdict-fast](./jmdict-fast/)
 
-Blazing-fast Japanese dictionary engine with FST-based indexing.
+A **blazing-fast Japanese dictionary engine** powered by FST (finite state transducer) indexing.
 
-- Kanji, kana, and romaji lookup
-- O(log n) search performance
-- Memory-mapped, zero allocations
-- JMdict-based dictionary data
+- Supports kanji, kana, and romaji lookups  
+- Achieves **O(log n)** search performance  
+- Uses memory-mapped data with zero allocations  
+- Built from the official **JMdict** dictionary dataset
 
 ### 📖 [bunpo](./bunpo/)
 
-Lightweight Japanese conjugation reversal (deinflection) system.
+A **lightweight deinflection engine** for Japanese verbs and adjectives.
 
-- Rule-based verb/adjective deinflection
-- No external dependencies
-- Used by jmdict-fast for conjugation handling
+- Rule-based conjugation reversal  
+- Zero external dependencies  
+- Integrated with `jmdict-fast` for conjugation-aware lookups
 
 ## Installation
+
+Add one or both crates to your `Cargo.toml`:
 
 ```toml
 [dependencies]
 jmdict-fast = "0.1.1"
-bunpo = "0.1.1"  # Optional - only if you need conjugation handling
+bunpo = "0.1.1"  # Optional – only needed for conjugation handling
 ```
 
 ## Quick Start
