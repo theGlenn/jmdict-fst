@@ -144,15 +144,6 @@ Rules are applied in priority order:
 
 This system prioritizes speed over perfect accuracy. For applications requiring high accuracy, consider using a full morphological analyzer like MeCab or Kuromoji.
 
-## Integration with ShiritoriX
-
-The deinflector integrates with the ShiritoriX game engine to:
-
-1. **Validate conjugated words**: Check if conjugated forms are valid
-2. **Find dictionary entries**: Look up lemmas in JMdict
-3. **Improve word acceptance**: Accept more valid word forms
-4. **Reduce false negatives**: Don't reject valid conjugated forms
-
 ## Examples
 
 Run the demo to see the system in action:
@@ -187,5 +178,4 @@ To add new conjugation patterns:
 5. Update documentation
 
 ## License
-
-This system is part of the ShiritoriX project and follows the same licensing terms. 
+This system is part of the jmdict-fast project and follows the same licensing terms. 

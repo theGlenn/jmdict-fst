@@ -46,7 +46,6 @@ fn main() -> Result<()> {
         // Create optimized entry by trimming unused fields
         let mut trimmed = entry.clone();
         for sense in &mut trimmed.sense {
-            // Clear fields that are rarely used in shiritori
             sense.antonym.clear();
             sense.info.clear();
             sense.field.clear();
