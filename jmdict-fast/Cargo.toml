@@ -1,0 +1,43 @@
+[package]
+name = "jmdict-fast"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+bunpo = { path = "../bunpo" }
+anyhow = "1.0.98"
+deunicode = "1.6.2"
+fst = "0.4.7"
+memmap2 = "0.9.4"
+postcard = { version = "1.0", features = ["alloc"] }
+serde = "1.0.219"
+serde_json = "1.0.140"
+simd-json = "0.14.3"
+unicode-normalization = "0.1.24"
+
+[build-dependencies]
+bunpo = { path = "../bunpo" }
+anyhow = "1.0.98"
+deunicode = "1.6.2"
+fst = "0.4.7"
+postcard = { version = "1.0", features = ["alloc"] }
+serde = "1.0.219"
+serde_derive = "1.0.219"
+serde_json = "1.0.140"
+reqwest = { version = "0.11", default-features = false, features = ["blocking", "rustls-tls"] }
+flate2 = "1.0"
+tar = "0.4" 
+
+[dev-dependencies]
+criterion = "0.5"
+jmdict = "2.0.0"
+
+[[bench]]
+name = "lookup_word"
+harness=false
+
+[[bench]]
+name = "minimal"
+harness=false
