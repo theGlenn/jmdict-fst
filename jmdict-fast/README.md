@@ -1,6 +1,6 @@
 # 🚀 jmdict-fast
 
-> **Blazing-fast, Japanese dictionary engine based on JMdict-simplified**
+> **Blazing-fast, Japanese dictionary engine**
 
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
