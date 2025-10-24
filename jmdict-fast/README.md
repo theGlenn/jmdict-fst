@@ -2,9 +2,10 @@
 
 > **Blazing-fast, Japanese dictionary engine**
 
-[![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
+[![crates.io](https://img.shields.io/crates/v/jmdict-fast.svg)](https://crates.io/crates/jmdict-fast)
+[![docs.rs](https://docs.rs/jmdict-fast/badge.svg)](https://docs.rs/jmdict-fast)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+[![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
 
 > **Note:** This crate uses [bunpo](https://github.com/theGlenn/jmdict-fst/tree/main/bunpo) for Japanese conjugation handling. Both crates are part of the same monorepo but are published separately to crates.io.
 

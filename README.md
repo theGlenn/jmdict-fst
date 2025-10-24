@@ -2,6 +2,10 @@
 
 A monorepo containing blazing-fast Japanese dictionary and grammar tools.
 
+[![jmdict-fast](https://img.shields.io/crates/v/jmdict-fast.svg)](https://crates.io/crates/jmdict-fast)
+[![bunpo](https://img.shields.io/crates/v/bunpo.svg)](https://crates.io/crates/bunpo)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 ## Crates
 
 This repository contains two independently-published crates:

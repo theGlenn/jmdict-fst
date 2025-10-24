@@ -2,6 +2,10 @@
 
 Lightweight Japanese conjugation reversal (deinflection) system.
 
+[![crates.io](https://img.shields.io/crates/v/bunpo.svg)](https://crates.io/crates/bunpo)
+[![docs.rs](https://docs.rs/bunpo/badge.svg)](https://docs.rs/bunpo)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 > **Note:** This crate is part of the [jmdict-fst](https://github.com/theGlenn/jmdict-fst) monorepo but can be used independently.
 
 ## Features
