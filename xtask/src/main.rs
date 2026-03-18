@@ -130,10 +130,19 @@ fn write_fst(path: &Path, entries: &[(String, u64)]) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Magic bytes at the start of entries.bin (must match jmdict-fast lib)
+const MAGIC: &[u8; 4] = b"JMDF";
+/// Binary format version (must match jmdict-fast lib FORMAT_VERSION)
+const FORMAT_VERSION: u32 = 1;
+
 fn write_blob(path: &Path, entries: &[dict::Entry]) -> anyhow::Result<()> {
     use std::io::{BufWriter, Write};
 
     let mut out = BufWriter::new(fs::File::create(path)?);
+
+    // Write header: magic bytes + format version
+    out.write_all(MAGIC)?;
+    out.write_all(&FORMAT_VERSION.to_le_bytes())?;
 
     let entry_count = entries.len() as u32;
     out.write_all(&entry_count.to_le_bytes())?;

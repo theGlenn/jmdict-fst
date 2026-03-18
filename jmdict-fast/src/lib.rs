@@ -1,10 +1,19 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use fst::{automaton::Str, Automaton, IntoStreamer, Map, Streamer};
 use memmap2::Mmap;
 use postcard;
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::{borrow::Cow, env, fs::File, path::Path};
+
+/// Magic bytes at the start of entries.bin
+const MAGIC: &[u8; 4] = b"JMDF";
+
+/// Binary format version for entries.bin
+pub const FORMAT_VERSION: u32 = 1;
+
+/// Size of the entries.bin header (magic + version)
+const HEADER_SIZE: usize = 8;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Entry {
@@ -67,6 +76,25 @@ pub struct Dict<'a> {
     deinflector: bunpo::deinflector::Deinflector,
 }
 
+/// Validate the entries.bin header (magic number and format version)
+fn validate_entries_header(data: &[u8]) -> Result<()> {
+    if data.len() < HEADER_SIZE {
+        bail!("entries.bin is too small to contain a valid header");
+    }
+    if &data[0..4] != MAGIC {
+        bail!("entries.bin has invalid magic number. Regenerate with `cargo xtask generate`.");
+    }
+    let version = u32::from_le_bytes(data[4..8].try_into().unwrap());
+    if version != FORMAT_VERSION {
+        bail!(
+            "Data format version {}, library expects {}. Regenerate with cargo xtask generate.",
+            version,
+            FORMAT_VERSION
+        );
+    }
+    Ok(())
+}
+
 impl<'a> Dict<'a> {
     /// Construct a Dict from in-memory slices (e.g., embedded bytes)
     pub fn from_slices(
@@ -76,6 +104,7 @@ impl<'a> Dict<'a> {
         romaji_fst: &'a [u8],
         id_fst: &'a [u8],
     ) -> Result<Self> {
+        validate_entries_header(entries)?;
         Ok(Self {
             entries_blob: Cow::Borrowed(entries),
             kana_fst: Map::new(Cow::Borrowed(kana_fst))?,
@@ -100,6 +129,8 @@ impl<'a> Dict<'a> {
             let kanji_fst = Cow::Owned(Mmap::map(&kanji_file)?[..].to_vec());
             let romaji_fst = Cow::Owned(Mmap::map(&romaji_file)?[..].to_vec());
             let id_fst = Cow::Owned(Mmap::map(&id_file)?[..].to_vec());
+
+            validate_entries_header(&entries_blob)?;
 
             Ok(Dict {
                 entries_blob,
@@ -186,13 +217,17 @@ impl<'a> Dict<'a> {
             .collect()
     }
 
-    // When reading offsets, start at index 4
+    // When reading offsets, start after header (8 bytes) + entry_count (4 bytes)
     fn load_entry(&self, id: u64) -> Option<Entry> {
-        let count = u32::from_le_bytes(self.entries_blob[0..4].try_into().ok()?) as usize;
+        let count = u32::from_le_bytes(
+            self.entries_blob[HEADER_SIZE..HEADER_SIZE + 4]
+                .try_into()
+                .ok()?,
+        ) as usize;
         if id as usize >= count {
             return None;
         }
-        let offset_index = 4 + (id as usize) * 8;
+        let offset_index = HEADER_SIZE + 4 + (id as usize) * 8;
         let off = u32::from_le_bytes(
             self.entries_blob[offset_index..offset_index + 4]
                 .try_into()
@@ -204,7 +239,7 @@ impl<'a> Dict<'a> {
                 .ok()?,
         );
 
-        let data_start = 4 + count * 8;
+        let data_start = HEADER_SIZE + 4 + count * 8;
         let start = data_start + (off as usize);
         let end = start + len as usize;
 
