@@ -1,6 +1,6 @@
 use jmdict_fast::Dict;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dict = Dict::load_default()?;
 
     println!("=== Dictionary Lookup Demonstration ===");

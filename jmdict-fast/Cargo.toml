@@ -16,7 +16,6 @@ embedded = []
 
 [dependencies]
 bunpo = "0.1.1"
-anyhow = "1.0.98"
 deunicode = "1.6.2"
 fst = "0.4.7"
 memmap2 = "0.9.4"

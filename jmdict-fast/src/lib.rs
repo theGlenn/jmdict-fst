@@ -1,4 +1,7 @@
-use anyhow::{bail, Result};
+mod error;
+
+pub use error::JmdictError;
+
 use fst::{automaton::Str, Automaton, IntoStreamer, Map, Streamer};
 use memmap2::Mmap;
 use postcard;
@@ -91,20 +94,19 @@ pub struct Dict<'a> {
 }
 
 /// Validate the entries.bin header (magic number and format version)
-fn validate_entries_header(data: &[u8]) -> Result<()> {
+fn validate_entries_header(data: &[u8]) -> Result<(), JmdictError> {
     if data.len() < HEADER_SIZE {
-        bail!("entries.bin is too small to contain a valid header");
+        return Err(JmdictError::DataCorrupted);
     }
     if &data[0..4] != MAGIC {
-        bail!("entries.bin has invalid magic number. Regenerate with `cargo xtask generate`.");
+        return Err(JmdictError::DataCorrupted);
     }
     let version = u32::from_le_bytes(data[4..8].try_into().unwrap());
     if version != FORMAT_VERSION {
-        bail!(
-            "Data format version {}, library expects {}. Regenerate with cargo xtask generate.",
-            version,
-            FORMAT_VERSION
-        );
+        return Err(JmdictError::DataVersionMismatch {
+            expected: FORMAT_VERSION,
+            found: version,
+        });
     }
     Ok(())
 }
@@ -117,7 +119,7 @@ impl<'a> Dict<'a> {
         kanji_fst: &'a [u8],
         romaji_fst: &'a [u8],
         id_fst: &'a [u8],
-    ) -> Result<Self> {
+    ) -> Result<Self, JmdictError> {
         validate_entries_header(entries)?;
         Ok(Self {
             entries_blob: Cow::Borrowed(entries),
@@ -130,7 +132,7 @@ impl<'a> Dict<'a> {
     }
 
     /// Load all FSTs and entries into memory (via mmap from files)
-    pub fn load<P: AsRef<Path>>(base_dir: P) -> Result<Self> {
+    pub fn load<P: AsRef<Path>>(base_dir: P) -> Result<Self, JmdictError> {
         let base = base_dir.as_ref();
         let entries_file = File::open(base.join("entries.bin"))?;
         let kana_file = File::open(base.join("kana.fst"))?;
@@ -158,7 +160,7 @@ impl<'a> Dict<'a> {
     }
 
     #[cfg(feature = "embedded")]
-    pub fn load_embedded() -> Result<Self> {
+    pub fn load_embedded() -> Result<Self, JmdictError> {
         let entries = include_bytes!(concat!(env!("OUT_DIR"), "/entries.bin"));
         let kana_fst = include_bytes!(concat!(env!("OUT_DIR"), "/kana.fst"));
         let kanji_fst = include_bytes!(concat!(env!("OUT_DIR"), "/kanji.fst"));
@@ -168,7 +170,7 @@ impl<'a> Dict<'a> {
         Self::from_slices(entries, kana_fst, kanji_fst, romaji_fst, id_fst)
     }
 
-    pub fn load_default() -> Result<Self> {
+    pub fn load_default() -> Result<Self, JmdictError> {
         #[cfg(feature = "embedded")]
         {
             if let Ok(dict) = Self::load_embedded() {

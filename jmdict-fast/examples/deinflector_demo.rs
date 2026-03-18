@@ -1,7 +1,7 @@
 use bunpo::deinflector::Deinflector;
 use jmdict_fast::Dict;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Japanese Lightweight Conjugation Reversal Demo ===\n");
 
     // Initialize the deinflector with default rules
