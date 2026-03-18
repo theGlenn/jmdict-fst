@@ -8,6 +8,21 @@
 - Use `anyhow` for error handling in xtask; library will get typed errors later
 - build.rs copies data from dist/ to OUT_DIR; rerun triggered by `cargo:rerun-if-changed=../dist`
 - `cargo xtask generate` outputs to dist/ by default (configurable with --output flag)
+- entries.bin header: magic `JMDF` (4) + u32 version (4) + u16-prefixed jmdict_version + u16-prefixed generated_at, then entry_count; header_size is dynamic
+- MAGIC/FORMAT_VERSION constants must stay in sync between lib.rs and xtask
+- After changing entries.bin format, `cargo clean -p jmdict-fast` is needed to clear cached OUT_DIR files
+- `embedded` feature gates include_bytes; without it, build.rs is a no-op and Dict loads from filesystem
+- Tests run from subdirectory — use `env!("CARGO_MANIFEST_DIR")` for compile-time workspace-relative paths
+- `serde_json::Value` does NOT round-trip through postcard — use typed structs instead
+- jmdict-fast uses `JmdictError` (in src/error.rs) for typed errors — all public methods return `Result<T, JmdictError>`
+- JMdict xrefs (related/antonym) are `Vec<Vec<Value>>` in JSON with mixed string/number elements; convert to typed `Xref` struct during generation
+- xtask dict.rs has Raw* types for JSON deserialization and typed Entry/SenseEntry for postcard serialization
+- All lookup methods return Vec<LookupResult> (not Vec<Entry>) — access entry via .entry field
+- bunpo CandidateWord.reason_chains is Vec<Vec<Reason>> — use Debug format for string conversion
+- QueryBuilder uses `_inner` private methods — public convenience methods (lookup_exact, etc.) wrap these
+- `dict.lookup(term)` returns QueryBuilder; chain `.mode()` then `.execute()` for builder-style queries
+- fst `levenshtein` feature must be enabled for fuzzy search; `Levenshtein::new(term, distance)` returns Result
+- JMdict POS values are abbreviated codes: "v1" (ichidan verb), "vt" (transitive), "n" (noun), "adj-i" (i-adjective), etc. — NOT full words
 
 ---
 
@@ -52,4 +67,177 @@
   - build.rs must have `cargo:rerun-if-changed` pointing to dist/ so it picks up new data after regeneration
   - After removing build-dependencies, cargo may cache stale OUT_DIR; touching build.rs forces a fresh run
   - The [build-dependencies] section must remain (even if empty) or be removed entirely — left empty for now for future US-005 feature gating
+---
+
+## 2026-03-18 - US-004
+- Added magic bytes `b'JMDF'` (4 bytes) + u32 format version (4 bytes) header to entries.bin
+- Defined `FORMAT_VERSION = 1` constant in jmdict-fast/src/lib.rs
+- Added `validate_entries_header()` function called from both `from_slices()` and `load()`
+- Updated `load_entry()` to offset reads by HEADER_SIZE (8 bytes)
+- Updated xtask `write_blob()` to write magic + version before entry_count
+- Mismatched version returns clear error message with regeneration instructions
+- All 11 existing tests pass after regenerating data
+- Files changed: jmdict-fast/src/lib.rs, xtask/src/main.rs
+- **Learnings for future iterations:**
+  - After changing entries.bin format, must `cargo clean -p jmdict-fast` or the old cached files in OUT_DIR will be used (build.rs skips copy if files exist)
+  - Magic/version constants are duplicated between lib.rs and xtask — keep them in sync manually
+  - HEADER_SIZE constant (8 bytes) simplifies all offset arithmetic in load_entry
+---
+
+## 2026-03-18 - US-005
+- Added `embedded` feature flag to jmdict-fast/Cargo.toml (no default features)
+- Gated `Dict::load_embedded()` behind `#[cfg(feature = "embedded")]`
+- Updated `load_default()`: tries embedded (if feature enabled), then JMDICT_DATA env var, then `dist/` relative to CWD, then `dist/` relative to workspace root
+- build.rs is a no-op without `embedded` feature (checks `CARGO_FEATURE_EMBEDDED` env var)
+- Gated `test_load_dict_embedded` test behind `#[cfg(feature = "embedded")]`
+- All 10 tests pass without `embedded`, all 11 pass with `--features embedded`
+- Files changed: jmdict-fast/Cargo.toml, jmdict-fast/build.rs, jmdict-fast/src/lib.rs
+- **Learnings for future iterations:**
+  - `CARGO_FEATURE_EMBEDDED` env var is set by Cargo when feature is active — use in build.rs to check features
+  - Tests run from a subdirectory, so `dist/` as relative path doesn't resolve; use `env!("CARGO_MANIFEST_DIR")` at compile time to find workspace-relative paths
+  - `load_default()` should cascade: embedded → env var → relative dist → workspace-relative dist
+---
+
+## 2026-03-18 - US-006
+- Removed field-clearing logic in xtask generate — all JMdict fields now preserved in entries.bin
+- Replaced `serde_json::Value` fields (related, antonym, language_source) with typed structs: `Xref`, `LanguageSource`
+- Added Raw* types in xtask/src/dict.rs for JSON deserialization, with conversion to typed structs for postcard
+- Bumped FORMAT_VERSION from 1 to 2
+- Removed `serde_json` dependency from jmdict-fast (no longer needed)
+- All 10 tests pass after regenerating data
+- Files changed: jmdict-fast/Cargo.toml, jmdict-fast/src/lib.rs, xtask/src/dict.rs, xtask/src/main.rs
+- **Learnings for future iterations:**
+  - `serde_json::Value` does NOT round-trip through postcard — always use typed structs for binary serialization
+  - JMdict xrefs are `[term, reading?, sense_index?]` arrays with mixed string/number elements — need custom parsing
+  - Separating Raw* (JSON) and typed (postcard) structs in xtask/dict.rs keeps concerns clean
+---
+
+## 2026-03-18 - US-007
+- Created GitHub Actions workflow at .github/workflows/release.yml
+- Workflow triggers on published releases, runs `cargo xtask generate`, bundles all data files into jmdict-data.tar.gz, and attaches to the GitHub Release
+- Uses dtolnay/rust-action for toolchain setup and gh CLI for release upload
+- Files changed: .github/workflows/release.yml (new)
+- **Learnings for future iterations:**
+  - `gh release upload` with `--clobber` allows re-running without failing on existing assets
+  - `permissions: contents: write` is needed for the GITHUB_TOKEN to upload release assets
+  - Workflow only needs to run on `release: [published]` — not on tag push, to avoid duplicate runs
+---
+
+## 2026-03-18 - US-008
+- Updated root README.md and jmdict-fast/README.md for new build system
+- Documented both embedded and runtime-loaded modes with code examples
+- Documented `cargo xtask generate` usage and `--output` flag
+- Added one-liner curl command for downloading pre-built data from GitHub Releases
+- Documented `JMDICT_DATA` env var and `embedded` feature flag
+- Added migration notes from previous embedded-only API
+- Removed outdated references to build_utils caching system
+- Files changed: README.md, jmdict-fast/README.md
+- **Learnings for future iterations:**
+  - Root README should stay high-level (overview + quick start); crate README has full API details
+  - Migration notes help users upgrading from previous versions understand the new architecture
+---
+
+## 2026-03-18 - US-009
+- Created JmdictError enum in jmdict-fast/src/error.rs with 6 variants: DataNotFound, DataVersionMismatch, DataCorrupted, InvalidQuery, IoError, DeserializationError
+- Each variant has a stable numeric .code() -> u32 method for FFI
+- impl Display with human-readable messages, impl std::error::Error
+- From<std::io::Error> maps NotFound to DataNotFound, others to IoError
+- From<fst::Error> maps to DataCorrupted
+- All public methods updated from anyhow::Result to Result<T, JmdictError>
+- Removed anyhow from jmdict-fast runtime dependencies (remains in xtask)
+- Updated examples to use Box<dyn std::error::Error> instead of anyhow::Result
+- All 10 tests pass
+- Files changed: jmdict-fast/src/error.rs (new), jmdict-fast/src/lib.rs, jmdict-fast/Cargo.toml, jmdict-fast/examples/deinflector_demo.rs, jmdict-fast/examples/lookup_demo.rs, Cargo.lock
+- **Learnings for future iterations:**
+  - Examples also depend on anyhow — check examples/ when removing a dependency
+  - Box<dyn std::error::Error> is a good replacement for anyhow in examples
+  - JmdictError error.rs is a public module re-exported from lib.rs
+---
+
+## 2026-03-18 - US-010
+- Added LookupResult, MatchType, and DeinflectionInfo types to jmdict-fast/src/lib.rs
+- Updated lookup_exact() to return Vec<LookupResult> with MatchType::Exact, score 1.0
+- Updated lookup_partial() to return Vec<LookupResult> with Exact/Prefix match types, sorted by score descending
+- Updated lookup_exact_with_deinflection() to return Vec<LookupResult> with MatchType::Deinflected, score 0.75, and DeinflectionInfo
+- Updated examples (lookup_demo.rs, deinflector_demo.rs) to access .entry field
+- All 10 tests pass with new return types, added assertions for match_type/score/deinflection
+- Files changed: jmdict-fast/src/lib.rs, jmdict-fast/examples/lookup_demo.rs, jmdict-fast/examples/deinflector_demo.rs
+- **Learnings for future iterations:**
+  - bunpo's CandidateWord has `reason_chains: Vec<Vec<Reason>>` — flatten and format with Debug for string rules
+  - Examples also need updating when changing public API return types
+  - lookup_partial can identify exact matches within prefix results by comparing key == prefix
+---
+
+## 2026-03-18 - US-011
+- Implemented QueryBuilder struct with `.mode(MatchMode)` and `.execute()` methods
+- Added MatchMode enum: Exact, Prefix, Deinflect, Fuzzy
+- `dict.lookup(term)` returns a QueryBuilder with default mode Exact
+- Refactored lookup_exact, lookup_partial, lookup_exact_with_deinflection into public wrappers + private `_inner` methods
+- QueryBuilder.execute() delegates to inner methods, keeping logic in one place
+- Added 4 new tests for builder (exact, prefix, deinflect, default mode)
+- All 14 tests pass
+- Files changed: jmdict-fast/src/lib.rs
+- **Learnings for future iterations:**
+  - Use `_inner` suffix for private implementation methods when public methods need to be convenience wrappers
+  - QueryBuilder borrows Dict with two lifetimes: `'d` for the borrow and `'a` for Dict's data lifetime
+  - Fuzzy mode is a placeholder (returns empty vec) — will be implemented in US-013
+---
+
+## 2026-03-18 - US-012
+- Added `.common_only(bool)`, `.pos(&[&str])`, and `.limit(usize)` filter methods to QueryBuilder
+- Filters applied in execute() after mode-specific lookup: common_only → pos → limit
+- POS filter uses substring matching (`contains`) so partial codes like "v1" match "v1" and "v1-s"
+- Added 6 new tests for filtering (common_only, common_only_prefix, pos_filter, pos_excludes, limit, chained_filters)
+- All 20 tests pass
+- Files changed: jmdict-fast/src/lib.rs
+- **Learnings for future iterations:**
+  - JMdict POS values are abbreviated codes like "v1", "vt", "n", "adj-i" — not full words like "verb" or "noun"
+  - POS `contains` matching allows flexible filtering (e.g., "v" matches all verb types)
+  - Filters are applied post-lookup, so they don't affect FST traversal performance
+---
+
+## 2026-03-18 - US-013
+- Implemented fuzzy search via Levenshtein automaton using fst's built-in `levenshtein` feature
+- Enabled `levenshtein` feature on fst crate in Cargo.toml
+- Added `lookup_fuzzy_inner()` method to Dict that searches all FSTs with `fst::automaton::Levenshtein`
+- Added `max_distance(n: u32)` method to QueryBuilder (default: 2)
+- Fuzzy results scored lower than exact matches (score < 1.0 for non-exact)
+- Added 4 new tests: fuzzy romaji, exact within fuzzy, max_distance behavior, fuzzy with filters
+- All 24 tests pass
+- Files changed: jmdict-fast/Cargo.toml, jmdict-fast/src/lib.rs, Cargo.lock
+- **Learnings for future iterations:**
+  - fst 0.4 has Levenshtein automaton behind `features = ["levenshtein"]` — NOT included by default
+  - `Levenshtein::new()` returns a Result — invalid patterns (e.g., too-large distance for short terms) can fail; map to InvalidQuery
+  - Fuzzy search over all 3 FSTs can return many results; use .limit() for performance-sensitive callers
+---
+
+## 2026-03-18 - US-014
+- Added `dict.lookup_batch(&[...])` returning `BatchQueryBuilder`
+- `BatchQueryBuilder` supports all same filter methods as `QueryBuilder`: `.mode()`, `.common_only()`, `.pos()`, `.limit()`, `.max_distance()`
+- `.execute()` returns `Vec<(String, Vec<LookupResult>)>` — each input term paired with its results
+- Internally delegates to `QueryBuilder` per term, reusing shared Dict reference
+- Added 5 new tests: basic batch, filters, mode+limit, empty terms, matches individual lookups
+- All 29 tests pass
+- Files changed: jmdict-fast/src/lib.rs
+- **Learnings for future iterations:**
+  - `BatchQueryBuilder` reuses `QueryBuilder` internally — no need to duplicate filter/execute logic
+  - `MatchMode` needs `Clone` derive (already had it) for batch builder to reuse across iterations
+  - POS filter refs need to be collected outside the loop to avoid borrow issues
+---
+
+## 2026-03-18 - US-015
+- Added `DataVersion` struct with format_version, jmdict_version, generated_at fields
+- Added `dict.entry_count() -> usize` and `dict.version() -> DataVersion` methods
+- Extended entries.bin header: after magic+version, now includes u16-prefixed jmdict_version and generated_at strings
+- Header size is now dynamic (stored in Dict struct); replaced const HEADER_SIZE with per-instance field
+- Xtask writes JMDICT_VERSION and chrono::Utc::now() timestamp into header
+- Bumped FORMAT_VERSION from 2 to 3
+- Added chrono dependency to xtask
+- Added 2 new tests: test_entry_count, test_version
+- All 31 tests pass
+- Files changed: jmdict-fast/src/lib.rs, xtask/Cargo.toml, xtask/src/main.rs, Cargo.lock
+- **Learnings for future iterations:**
+  - Variable-length header fields require storing header_size in the Dict struct rather than using a constant
+  - u16-prefixed strings are a simple way to encode variable-length metadata in binary headers
+  - chrono::Utc::now().to_rfc3339() gives a standard timestamp format for generated_at
 ---

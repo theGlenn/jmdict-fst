@@ -53,10 +53,15 @@ pub struct LookupResult {
 const MAGIC: &[u8; 4] = b"JMDF";
 
 /// Binary format version for entries.bin
-pub const FORMAT_VERSION: u32 = 2;
+pub const FORMAT_VERSION: u32 = 3;
 
-/// Size of the entries.bin header (magic + version)
-const HEADER_SIZE: usize = 8;
+/// Dictionary data version information.
+#[derive(Debug, Clone)]
+pub struct DataVersion {
+    pub format_version: u32,
+    pub jmdict_version: String,
+    pub generated_at: String,
+}
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Entry {
@@ -131,11 +136,20 @@ pub struct Dict<'a> {
     pub romaji_fst: Map<Cow<'a, [u8]>>,
     pub id_fst: Map<Cow<'a, [u8]>>,
     deinflector: bunpo::deinflector::Deinflector,
+    data_version: DataVersion,
+    header_size: usize,
 }
 
-/// Validate the entries.bin header (magic number and format version)
-fn validate_entries_header(data: &[u8]) -> Result<(), JmdictError> {
-    if data.len() < HEADER_SIZE {
+/// Parsed header information from entries.bin
+struct HeaderInfo {
+    data_version: DataVersion,
+    /// Total bytes before entry_count (magic + version + metadata strings)
+    header_size: usize,
+}
+
+/// Parse the entries.bin header: magic, format version, jmdict_version, generated_at
+fn parse_entries_header(data: &[u8]) -> Result<HeaderInfo, JmdictError> {
+    if data.len() < 8 {
         return Err(JmdictError::DataCorrupted);
     }
     if &data[0..4] != MAGIC {
@@ -148,7 +162,36 @@ fn validate_entries_header(data: &[u8]) -> Result<(), JmdictError> {
             found: version,
         });
     }
-    Ok(())
+
+    // Parse jmdict_version (u16 len + bytes)
+    if data.len() < 10 {
+        return Err(JmdictError::DataCorrupted);
+    }
+    let jmdict_ver_len = u16::from_le_bytes(data[8..10].try_into().unwrap()) as usize;
+    let mut pos = 10;
+    if data.len() < pos + jmdict_ver_len + 2 {
+        return Err(JmdictError::DataCorrupted);
+    }
+    let jmdict_version = String::from_utf8_lossy(&data[pos..pos + jmdict_ver_len]).to_string();
+    pos += jmdict_ver_len;
+
+    // Parse generated_at (u16 len + bytes)
+    let gen_at_len = u16::from_le_bytes(data[pos..pos + 2].try_into().unwrap()) as usize;
+    pos += 2;
+    if data.len() < pos + gen_at_len {
+        return Err(JmdictError::DataCorrupted);
+    }
+    let generated_at = String::from_utf8_lossy(&data[pos..pos + gen_at_len]).to_string();
+    pos += gen_at_len;
+
+    Ok(HeaderInfo {
+        data_version: DataVersion {
+            format_version: version,
+            jmdict_version,
+            generated_at,
+        },
+        header_size: pos,
+    })
 }
 
 impl<'a> Dict<'a> {
@@ -160,7 +203,7 @@ impl<'a> Dict<'a> {
         romaji_fst: &'a [u8],
         id_fst: &'a [u8],
     ) -> Result<Self, JmdictError> {
-        validate_entries_header(entries)?;
+        let header = parse_entries_header(entries)?;
         Ok(Self {
             entries_blob: Cow::Borrowed(entries),
             kana_fst: Map::new(Cow::Borrowed(kana_fst))?,
@@ -168,6 +211,8 @@ impl<'a> Dict<'a> {
             romaji_fst: Map::new(Cow::Borrowed(romaji_fst))?,
             id_fst: Map::new(Cow::Borrowed(id_fst))?,
             deinflector: bunpo::deinflector::Deinflector::new(),
+            data_version: header.data_version,
+            header_size: header.header_size,
         })
     }
 
@@ -186,7 +231,7 @@ impl<'a> Dict<'a> {
             let romaji_fst = Cow::Owned(Mmap::map(&romaji_file)?[..].to_vec());
             let id_fst = Cow::Owned(Mmap::map(&id_file)?[..].to_vec());
 
-            validate_entries_header(&entries_blob)?;
+            let header = parse_entries_header(&entries_blob)?;
 
             Ok(Dict {
                 entries_blob,
@@ -195,6 +240,8 @@ impl<'a> Dict<'a> {
                 romaji_fst: Map::new(romaji_fst)?,
                 id_fst: Map::new(id_fst)?,
                 deinflector: bunpo::deinflector::Deinflector::new(),
+                data_version: header.data_version,
+                header_size: header.header_size,
             })
         }
     }
@@ -236,6 +283,20 @@ impl<'a> Dict<'a> {
         }
 
         Self::load(dist)
+    }
+
+    /// Returns the total number of entries in the dictionary.
+    pub fn entry_count(&self) -> usize {
+        u32::from_le_bytes(
+            self.entries_blob[self.header_size..self.header_size + 4]
+                .try_into()
+                .unwrap(),
+        ) as usize
+    }
+
+    /// Returns data version information (format version, JMdict source version, generation timestamp).
+    pub fn version(&self) -> DataVersion {
+        self.data_version.clone()
     }
 
     /// Lookup a term exactly across kana, kanji, romaji.
@@ -445,17 +506,16 @@ impl<'a> Dict<'a> {
         }
     }
 
-    // When reading offsets, start after header (8 bytes) + entry_count (4 bytes)
+    // When reading offsets, start after header + entry_count (4 bytes)
     fn load_entry(&self, id: u64) -> Option<Entry> {
+        let hs = self.header_size;
         let count = u32::from_le_bytes(
-            self.entries_blob[HEADER_SIZE..HEADER_SIZE + 4]
-                .try_into()
-                .ok()?,
+            self.entries_blob[hs..hs + 4].try_into().ok()?,
         ) as usize;
         if id as usize >= count {
             return None;
         }
-        let offset_index = HEADER_SIZE + 4 + (id as usize) * 8;
+        let offset_index = hs + 4 + (id as usize) * 8;
         let off = u32::from_le_bytes(
             self.entries_blob[offset_index..offset_index + 4]
                 .try_into()
@@ -467,7 +527,7 @@ impl<'a> Dict<'a> {
                 .ok()?,
         );
 
-        let data_start = HEADER_SIZE + 4 + count * 8;
+        let data_start = hs + 4 + count * 8;
         let start = data_start + (off as usize);
         let end = start + len as usize;
 
@@ -1142,5 +1202,22 @@ mod tests {
                 term
             );
         }
+    }
+
+    #[test]
+    fn test_entry_count() {
+        let dict = create_test_dict();
+        let count = dict.entry_count();
+        // JMdict has tens of thousands of entries
+        assert!(count > 10_000, "Expected more than 10,000 entries, got {}", count);
+    }
+
+    #[test]
+    fn test_version() {
+        let dict = create_test_dict();
+        let version = dict.version();
+        assert_eq!(version.format_version, FORMAT_VERSION);
+        assert!(!version.jmdict_version.is_empty(), "jmdict_version should not be empty");
+        assert!(!version.generated_at.is_empty(), "generated_at should not be empty");
     }
 }

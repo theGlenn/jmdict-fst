@@ -100,7 +100,13 @@ fn generate(output_dir: &Path) -> anyhow::Result<()> {
 
     eprintln!("Writing binary blob...");
     eprintln!("Writing {} entries to binary blob", entries.len());
-    write_blob(&output_dir.join("entries.bin"), &entries)?;
+    let generated_at = chrono::Utc::now().to_rfc3339();
+    write_blob(
+        &output_dir.join("entries.bin"),
+        &entries,
+        JMDICT_VERSION,
+        &generated_at,
+    )?;
 
     eprintln!("Done ✅ Output written to {}", output_dir.display());
     Ok(())
@@ -119,9 +125,14 @@ fn write_fst(path: &Path, entries: &[(String, u64)]) -> anyhow::Result<()> {
 /// Magic bytes at the start of entries.bin (must match jmdict-fast lib)
 const MAGIC: &[u8; 4] = b"JMDF";
 /// Binary format version (must match jmdict-fast lib FORMAT_VERSION)
-const FORMAT_VERSION: u32 = 2;
+const FORMAT_VERSION: u32 = 3;
 
-fn write_blob(path: &Path, entries: &[dict::Entry]) -> anyhow::Result<()> {
+fn write_blob(
+    path: &Path,
+    entries: &[dict::Entry],
+    jmdict_version: &str,
+    generated_at: &str,
+) -> anyhow::Result<()> {
     use std::io::{BufWriter, Write};
 
     let mut out = BufWriter::new(fs::File::create(path)?);
@@ -129,6 +140,14 @@ fn write_blob(path: &Path, entries: &[dict::Entry]) -> anyhow::Result<()> {
     // Write header: magic bytes + format version
     out.write_all(MAGIC)?;
     out.write_all(&FORMAT_VERSION.to_le_bytes())?;
+
+    // Write jmdict_version (u16 len + bytes)
+    out.write_all(&(jmdict_version.len() as u16).to_le_bytes())?;
+    out.write_all(jmdict_version.as_bytes())?;
+
+    // Write generated_at (u16 len + bytes)
+    out.write_all(&(generated_at.len() as u16).to_le_bytes())?;
+    out.write_all(generated_at.as_bytes())?;
 
     let entry_count = entries.len() as u32;
     out.write_all(&entry_count.to_le_bytes())?;
