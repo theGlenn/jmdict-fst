@@ -44,13 +44,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 if !valid_entries.is_empty() {
                     println!("  Valid dictionary entries found:");
-                    for entry in valid_entries.iter().take(3) {
+                    for lr in valid_entries.iter().take(3) {
                         // Limit to first 3
-                        if let Some(kanji) = entry.kanji.first() {
+                        if let Some(kanji) = lr.entry.kanji.first() {
                             println!(
                                 "    - {} ({})",
                                 kanji.text,
-                                entry
+                                lr.entry
                                     .kana
                                     .first()
                                     .map(|k| &k.text)

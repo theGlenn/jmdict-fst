@@ -9,6 +9,33 @@ use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::{borrow::Cow, fs::File, path::Path};
 
+/// How a lookup result matched the query term.
+#[derive(Debug, Clone, PartialEq)]
+pub enum MatchType {
+    Exact,
+    Prefix,
+    Deinflected,
+    Fuzzy,
+}
+
+/// Information about how a term was deinflected to find its base form.
+#[derive(Debug, Clone)]
+pub struct DeinflectionInfo {
+    pub original_form: String,
+    pub base_form: String,
+    pub rules: Vec<String>,
+}
+
+/// A structured lookup result with metadata about how it matched.
+#[derive(Debug, Clone)]
+pub struct LookupResult {
+    pub entry: Entry,
+    pub match_type: MatchType,
+    pub match_key: String,
+    pub score: f64,
+    pub deinflection: Option<DeinflectionInfo>,
+}
+
 /// Magic bytes at the start of entries.bin
 const MAGIC: &[u8; 4] = b"JMDF";
 
@@ -199,7 +226,7 @@ impl<'a> Dict<'a> {
     }
 
     /// Lookup a term exactly across kana, kanji, romaji
-    pub fn lookup_exact(&self, term: &str) -> Vec<Entry> {
+    pub fn lookup_exact(&self, term: &str) -> Vec<LookupResult> {
         let mut ids = Vec::new();
 
         if let Some(id) = self.kana_fst.get(term) {
@@ -216,11 +243,19 @@ impl<'a> Dict<'a> {
         ids.dedup();
 
         ids.into_iter()
-            .filter_map(|id| self.load_entry(id))
+            .filter_map(|id| {
+                self.load_entry(id).map(|entry| LookupResult {
+                    entry,
+                    match_type: MatchType::Exact,
+                    match_key: term.to_string(),
+                    score: 1.0,
+                    deinflection: None,
+                })
+            })
             .collect()
     }
 
-    pub fn lookup_exact_with_deinflection(&self, term: &str) -> Vec<Entry> {
+    pub fn lookup_exact_with_deinflection(&self, term: &str) -> Vec<LookupResult> {
         // First lookup exact
         let results = self.lookup_exact(term);
         if !results.is_empty() {
@@ -229,30 +264,79 @@ impl<'a> Dict<'a> {
 
         // Then deinflect
         let deinflected = self.deinflector.deinflect(term);
+        let mut seen_ids = BTreeSet::new();
         let mut results = Vec::new();
         for candidate in deinflected {
-            results.extend(self.lookup_exact(&candidate.word));
+            let exact = self.lookup_exact(&candidate.word);
+            for mut lr in exact {
+                // Deduplicate by entry id
+                if !seen_ids.insert(lr.entry.id.clone()) {
+                    continue;
+                }
+                lr.match_type = MatchType::Deinflected;
+                lr.match_key = candidate.word.clone();
+                lr.score = 0.75;
+                lr.deinflection = Some(DeinflectionInfo {
+                    original_form: term.to_string(),
+                    base_form: candidate.word.clone(),
+                    rules: candidate
+                        .reason_chains
+                        .iter()
+                        .flatten()
+                        .map(|r| format!("{:?}", r))
+                        .collect(),
+                });
+                results.push(lr);
+            }
         }
+
+        // Sort by score descending
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
         results
     }
 
     /// Lookup entries that start with the given term (prefix search)
-    pub fn lookup_partial(&self, prefix: &str) -> Vec<Entry> {
-        // sorted + dedup
-        let mut ids = BTreeSet::new();
+    pub fn lookup_partial(&self, prefix: &str) -> Vec<LookupResult> {
+        let mut id_keys: Vec<(u64, String)> = Vec::new();
 
         let automaton = Str::new(prefix).starts_with();
 
         for fst in [&self.kana_fst, &self.kanji_fst, &self.romaji_fst] {
             let mut stream = fst.search(&automaton).into_stream();
-            while let Some((_key, val)) = stream.next() {
-                ids.insert(val);
+            while let Some((key, val)) = stream.next() {
+                let key_str = String::from_utf8_lossy(key).to_string();
+                id_keys.push((val, key_str));
             }
         }
 
-        ids.into_iter()
-            .filter_map(|id| self.load_entry(id))
-            .collect()
+        // Deduplicate by id, keeping first match key
+        let mut seen = BTreeSet::new();
+        let mut results = Vec::new();
+        for (id, key) in id_keys {
+            if !seen.insert(id) {
+                continue;
+            }
+            if let Some(entry) = self.load_entry(id) {
+                let is_exact = key == prefix;
+                let score = if is_exact { 1.0 } else { 0.5 };
+                let match_type = if is_exact {
+                    MatchType::Exact
+                } else {
+                    MatchType::Prefix
+                };
+                results.push(LookupResult {
+                    entry,
+                    match_type,
+                    match_key: key,
+                    score,
+                    deinflection: None,
+                });
+            }
+        }
+
+        // Sort by score descending
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        results
     }
 
     // When reading offsets, start after header (8 bytes) + entry_count (4 bytes)
@@ -318,10 +402,14 @@ mod tests {
 
         assert!(!results.is_empty(), "Expected to find entries for 猫");
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].kana[0].text, "ねこ");
-        assert_eq!(results[0].kanji[0].text, "猫");
+        assert_eq!(results[0].match_type, MatchType::Exact);
+        assert_eq!(results[0].match_key, "猫");
+        assert_eq!(results[0].score, 1.0);
+        assert!(results[0].deinflection.is_none());
+        assert_eq!(results[0].entry.kana[0].text, "ねこ");
+        assert_eq!(results[0].entry.kanji[0].text, "猫");
         assert_eq!(
-            results[0].sense[0].gloss[0].text,
+            results[0].entry.sense[0].gloss[0].text,
             "cat (esp. the domestic cat, Felis catus)"
         );
     }
@@ -334,9 +422,9 @@ mod tests {
 
         assert!(!results.is_empty(), "Expected to find entries for 食べる");
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].kana[0].text, "たべる");
-        assert_eq!(results[0].kanji[0].text, "食べる");
-        assert_eq!(results[0].sense[0].gloss[0].text, "to eat");
+        assert_eq!(results[0].entry.kana[0].text, "たべる");
+        assert_eq!(results[0].entry.kanji[0].text, "食べる");
+        assert_eq!(results[0].entry.sense[0].gloss[0].text, "to eat");
     }
 
     #[test]
@@ -359,14 +447,21 @@ mod tests {
         let results = dict.lookup_exact_with_deinflection("たべます");
         assert!(!results.is_empty(), "Expected to find entries for たべます");
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].kana[0].text, "たべる");
-        assert_eq!(results[0].kanji[0].text, "食べる");
+        assert_eq!(results[0].match_type, MatchType::Deinflected);
+        assert_eq!(results[0].score, 0.75);
+        assert!(results[0].deinflection.is_some());
+        let deinf = results[0].deinflection.as_ref().unwrap();
+        assert_eq!(deinf.original_form, "たべます");
+        assert_eq!(deinf.base_form, "たべる");
+        assert!(!deinf.rules.is_empty());
+        assert_eq!(results[0].entry.kana[0].text, "たべる");
+        assert_eq!(results[0].entry.kanji[0].text, "食べる");
 
         let results = dict.lookup_exact_with_deinflection("食べます");
         assert!(!results.is_empty(), "Expected to find entries for 食べます");
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].kana[0].text, "たべる");
-        assert_eq!(results[0].kanji[0].text, "食べる");
+        assert_eq!(results[0].entry.kana[0].text, "たべる");
+        assert_eq!(results[0].entry.kanji[0].text, "食べる");
     }
 
     #[test]
@@ -375,8 +470,10 @@ mod tests {
         let results = dict.lookup_exact_with_deinflection("美しい");
         assert!(!results.is_empty(), "Expected to find entries for 美しい");
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].kana[0].text, "うつくしい");
-        assert_eq!(results[0].kanji[0].text, "美しい");
+        // Direct match should be Exact, not Deinflected
+        assert_eq!(results[0].match_type, MatchType::Exact);
+        assert_eq!(results[0].entry.kana[0].text, "うつくしい");
+        assert_eq!(results[0].entry.kanji[0].text, "美しい");
     }
 
     #[test]
@@ -422,16 +519,23 @@ mod tests {
             "Expected to find more than 3 results for たべ"
         );
         assert!(
-            results.iter().any(|r| r.kana[0].text == "たべる"),
+            results.iter().any(|r| r.entry.kana[0].text == "たべる"),
             "Expected to find たべる in results"
         );
         assert!(
-            results.iter().any(|r| r.kanji[0].text == "食べる"),
+            results.iter().any(|r| r.entry.kanji[0].text == "食べる"),
             "Expected to find 食べる in results"
         );
         assert!(
-            results.iter().any(|r| r.sense[0].gloss[0].text == "to eat"),
+            results
+                .iter()
+                .any(|r| r.entry.sense[0].gloss[0].text == "to eat"),
             "Expected to find to eat in results"
+        );
+        // Verify prefix results have appropriate match types
+        assert!(
+            results.iter().any(|r| r.match_type == MatchType::Prefix),
+            "Expected some Prefix match types"
         );
     }
 
@@ -449,7 +553,7 @@ mod tests {
         // Verify that partial results include entries that start with "ね"
         let has_nekko = partial_results
             .iter()
-            .any(|entry| entry.kana.iter().any(|k| k.text.starts_with("ね")));
+            .any(|lr| lr.entry.kana.iter().any(|k| k.text.starts_with("ね")));
         assert!(
             has_nekko,
             "Partial results should include entries starting with ね"
@@ -462,5 +566,13 @@ mod tests {
             partial_neko.len() >= exact_neko.len(),
             "Partial lookup should find at least as many results as exact lookup"
         );
+
+        // Verify results are sorted by score descending
+        for window in partial_neko.windows(2) {
+            assert!(
+                window[0].score >= window[1].score,
+                "Results should be sorted by score descending"
+            );
+        }
     }
 }
