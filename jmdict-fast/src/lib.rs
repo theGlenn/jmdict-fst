@@ -18,6 +18,19 @@ pub enum MatchType {
     Fuzzy,
 }
 
+/// The search mode for a query.
+#[derive(Debug, Clone, PartialEq)]
+pub enum MatchMode {
+    /// Exact match only.
+    Exact,
+    /// Prefix (starts-with) search.
+    Prefix,
+    /// Exact match with deinflection fallback.
+    Deinflect,
+    /// Fuzzy (approximate) match.
+    Fuzzy,
+}
+
 /// Information about how a term was deinflected to find its base form.
 #[derive(Debug, Clone)]
 pub struct DeinflectionInfo {
@@ -225,8 +238,14 @@ impl<'a> Dict<'a> {
         Self::load(dist)
     }
 
-    /// Lookup a term exactly across kana, kanji, romaji
+    /// Lookup a term exactly across kana, kanji, romaji.
+    ///
+    /// Convenience method equivalent to `dict.lookup(term).mode(MatchMode::Exact).execute()`.
     pub fn lookup_exact(&self, term: &str) -> Vec<LookupResult> {
+        self.lookup_exact_inner(term)
+    }
+
+    fn lookup_exact_inner(&self, term: &str) -> Vec<LookupResult> {
         let mut ids = Vec::new();
 
         if let Some(id) = self.kana_fst.get(term) {
@@ -255,9 +274,16 @@ impl<'a> Dict<'a> {
             .collect()
     }
 
+    /// Lookup a term with deinflection fallback.
+    ///
+    /// Convenience method equivalent to `dict.lookup(term).mode(MatchMode::Deinflect).execute()`.
     pub fn lookup_exact_with_deinflection(&self, term: &str) -> Vec<LookupResult> {
+        self.lookup_exact_with_deinflection_inner(term)
+    }
+
+    fn lookup_exact_with_deinflection_inner(&self, term: &str) -> Vec<LookupResult> {
         // First lookup exact
-        let results = self.lookup_exact(term);
+        let results = self.lookup_exact_inner(term);
         if !results.is_empty() {
             return results;
         }
@@ -267,7 +293,7 @@ impl<'a> Dict<'a> {
         let mut seen_ids = BTreeSet::new();
         let mut results = Vec::new();
         for candidate in deinflected {
-            let exact = self.lookup_exact(&candidate.word);
+            let exact = self.lookup_exact_inner(&candidate.word);
             for mut lr in exact {
                 // Deduplicate by entry id
                 if !seen_ids.insert(lr.entry.id.clone()) {
@@ -295,8 +321,14 @@ impl<'a> Dict<'a> {
         results
     }
 
-    /// Lookup entries that start with the given term (prefix search)
+    /// Lookup entries that start with the given term (prefix search).
+    ///
+    /// Convenience method equivalent to `dict.lookup(term).mode(MatchMode::Prefix).execute()`.
     pub fn lookup_partial(&self, prefix: &str) -> Vec<LookupResult> {
+        self.lookup_partial_inner(prefix)
+    }
+
+    fn lookup_partial_inner(&self, prefix: &str) -> Vec<LookupResult> {
         let mut id_keys: Vec<(u64, String)> = Vec::new();
 
         let automaton = Str::new(prefix).starts_with();
@@ -339,6 +371,15 @@ impl<'a> Dict<'a> {
         results
     }
 
+    /// Create a query builder for the given term.
+    pub fn lookup(&self, term: &str) -> QueryBuilder<'_, 'a> {
+        QueryBuilder {
+            dict: self,
+            term: term.to_string(),
+            mode: MatchMode::Exact,
+        }
+    }
+
     // When reading offsets, start after header (8 bytes) + entry_count (4 bytes)
     fn load_entry(&self, id: u64) -> Option<Entry> {
         let count = u32::from_le_bytes(
@@ -366,6 +407,35 @@ impl<'a> Dict<'a> {
         let end = start + len as usize;
 
         postcard::from_bytes(&self.entries_blob[start..end]).ok()
+    }
+}
+
+/// A builder for configuring and executing dictionary lookups.
+pub struct QueryBuilder<'d, 'a> {
+    dict: &'d Dict<'a>,
+    term: String,
+    mode: MatchMode,
+}
+
+impl<'d, 'a> QueryBuilder<'d, 'a> {
+    /// Set the match mode for this query.
+    pub fn mode(mut self, mode: MatchMode) -> Self {
+        self.mode = mode;
+        self
+    }
+
+    /// Execute the query and return results.
+    pub fn execute(self) -> Result<Vec<LookupResult>, JmdictError> {
+        let results = match self.mode {
+            MatchMode::Exact => self.dict.lookup_exact_inner(&self.term),
+            MatchMode::Prefix => self.dict.lookup_partial_inner(&self.term),
+            MatchMode::Deinflect => self.dict.lookup_exact_with_deinflection_inner(&self.term),
+            MatchMode::Fuzzy => {
+                // Fuzzy search will be implemented in US-013
+                Vec::new()
+            }
+        };
+        Ok(results)
     }
 }
 
@@ -574,5 +644,43 @@ mod tests {
                 "Results should be sorted by score descending"
             );
         }
+    }
+
+    #[test]
+    fn test_query_builder_exact() {
+        let dict = create_test_dict();
+        let results = dict.lookup("猫").execute().unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].match_type, MatchType::Exact);
+        assert_eq!(results[0].entry.kanji[0].text, "猫");
+    }
+
+    #[test]
+    fn test_query_builder_prefix() {
+        let dict = create_test_dict();
+        let results = dict.lookup("たべ").mode(MatchMode::Prefix).execute().unwrap();
+        assert!(!results.is_empty());
+        assert!(results.iter().any(|r| r.match_type == MatchType::Prefix));
+        assert!(results.iter().any(|r| r.entry.kana[0].text == "たべる"));
+    }
+
+    #[test]
+    fn test_query_builder_deinflect() {
+        let dict = create_test_dict();
+        let results = dict.lookup("たべます").mode(MatchMode::Deinflect).execute().unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].match_type, MatchType::Deinflected);
+        assert!(results[0].deinflection.is_some());
+        assert_eq!(results[0].entry.kana[0].text, "たべる");
+    }
+
+    #[test]
+    fn test_query_builder_default_mode_is_exact() {
+        let dict = create_test_dict();
+        // Without setting mode, should default to Exact
+        let builder_results = dict.lookup("猫").execute().unwrap();
+        let direct_results = dict.lookup_exact("猫");
+        assert_eq!(builder_results.len(), direct_results.len());
+        assert_eq!(builder_results[0].entry.id, direct_results[0].entry.id);
     }
 }
