@@ -9,3 +9,4 @@
 ## File system
 .DS_Store
 target/
+.cache/

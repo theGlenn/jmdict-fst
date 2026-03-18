@@ -1,12 +1,10 @@
-//! Reusable caching system for downloading and caching data files
+//! Caching system for downloading and caching JMdict data files
 //!
-//! This module provides a generic caching system that can be used to download
-//! and cache any type of data with version tracking and integrity verification.
+//! Uses a project-level .cache/ directory for storing downloaded data.
 
 use anyhow::Result;
-use std::env;
 use std::io::Cursor;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Configuration for the caching system
 #[derive(Debug, Clone)]
@@ -26,12 +24,32 @@ impl CacheConfig {
         }
     }
 
-    /// Get the cache file paths based on OUT_DIR environment variable
+    /// Get the cache file paths based on project-level .cache/ directory
     pub fn get_cache_paths(&self) -> Result<(PathBuf, PathBuf)> {
-        let dir_path = env::var("OUT_DIR")?;
-        let cache_file = Path::new(&dir_path).join(&self.cache_file_name);
-        let version_file = Path::new(&dir_path).join(&self.version_file_name);
+        let cache_dir = get_project_cache_dir()?;
+        std::fs::create_dir_all(&cache_dir)?;
+        let cache_file = cache_dir.join(&self.cache_file_name);
+        let version_file = cache_dir.join(&self.version_file_name);
         Ok((cache_file, version_file))
+    }
+}
+
+/// Get the project-level .cache/ directory
+fn get_project_cache_dir() -> Result<PathBuf> {
+    // Walk up from current dir to find Cargo.toml workspace root
+    let mut dir = std::env::current_dir()?;
+    loop {
+        let cargo_toml = dir.join("Cargo.toml");
+        if cargo_toml.exists() {
+            let contents = std::fs::read_to_string(&cargo_toml)?;
+            if contents.contains("[workspace]") {
+                return Ok(dir.join(".cache"));
+            }
+        }
+        if !dir.pop() {
+            // Fallback to current directory
+            return Ok(std::env::current_dir()?.join(".cache"));
+        }
     }
 }
 
@@ -71,7 +89,6 @@ where
     eprintln!("📥 Downloading to {:?}", cache_file);
     match download_fn() {
         Ok(bytes) => {
-            // Write the data first, then the version (atomic-like)
             std::fs::write(&cache_file, &bytes)?;
             std::fs::write(&version_file, &config.current_version)?;
             eprintln!("✅ Successfully downloaded and cached");
@@ -79,7 +96,6 @@ where
         }
         Err(e) => {
             eprintln!("❌ Download failed: {}", e);
-            // If download fails but cache exists, try to use it
             if cache_file.exists() {
                 eprintln!("⚠️  Falling back to existing cache (may be stale)");
                 Ok(std::fs::read(&cache_file)?)
@@ -124,96 +140,4 @@ where
 
     let data = verify_and_fix_cache(&config, download_fn)?;
     Ok(Cursor::new(data))
-}
-
-/// Utility function to clear cache files
-#[allow(dead_code)]
-pub fn clear_cache(config: &CacheConfig) -> Result<()> {
-    let (cache_file, version_file) = config.get_cache_paths()?;
-
-    if cache_file.exists() {
-        std::fs::remove_file(&cache_file)?;
-        eprintln!("🗑️  Removed cache file: {:?}", cache_file);
-    }
-
-    if version_file.exists() {
-        std::fs::remove_file(&version_file)?;
-        eprintln!("🗑️  Removed version file: {:?}", version_file);
-    }
-
-    Ok(())
-}
-
-/// Utility function to check cache status
-#[allow(dead_code)]
-pub fn check_cache_status(config: &CacheConfig) -> Result<CacheStatus> {
-    let (cache_file, version_file) = config.get_cache_paths()?;
-
-    if !cache_file.exists() {
-        return Ok(CacheStatus::NotFound);
-    }
-
-    if !version_file.exists() {
-        return Ok(CacheStatus::NoVersion);
-    }
-
-    match std::fs::read_to_string(&version_file) {
-        Ok(cached_version) => {
-            if cached_version.trim() == config.current_version {
-                Ok(CacheStatus::Valid)
-            } else {
-                Ok(CacheStatus::Outdated)
-            }
-        }
-        Err(_) => Ok(CacheStatus::Corrupted),
-    }
-}
-
-/// Represents the current status of the cache
-#[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)]
-pub enum CacheStatus {
-    /// Cache file doesn't exist
-    NotFound,
-    /// Cache exists but no version file
-    NoVersion,
-    /// Cache is valid and up to date
-    Valid,
-    /// Cache exists but version is outdated
-    Outdated,
-    /// Cache files are corrupted
-    Corrupted,
-}
-
-impl std::fmt::Display for CacheStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CacheStatus::NotFound => write!(f, "Cache not found"),
-            CacheStatus::NoVersion => write!(f, "Cache exists but no version file"),
-            CacheStatus::Valid => write!(f, "Cache is valid"),
-            CacheStatus::Outdated => write!(f, "Cache is outdated"),
-            CacheStatus::Corrupted => write!(f, "Cache is corrupted"),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::tempdir;
-
-    #[test]
-    fn test_cache_config_new() {
-        let config = CacheConfig::new("test.json", "test.version", "v1.0.0");
-        assert_eq!(config.cache_file_name, "test.json");
-        assert_eq!(config.version_file_name, "test.version");
-        assert_eq!(config.current_version, "v1.0.0");
-    }
-
-    #[test]
-    fn test_cache_status_display() {
-        assert_eq!(CacheStatus::Valid.to_string(), "Cache is valid");
-        assert_eq!(CacheStatus::NotFound.to_string(), "Cache not found");
-        assert_eq!(CacheStatus::Outdated.to_string(), "Cache is outdated");
-    }
 }

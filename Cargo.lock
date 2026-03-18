@@ -960,17 +960,14 @@ dependencies = [
  "bunpo 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "criterion",
  "deunicode",
- "flate2",
  "fst",
  "jmdict",
  "memmap2",
  "postcard",
- "reqwest",
  "serde",
  "serde_derive",
  "serde_json",
  "simd-json",
- "tar",
  "unicode-normalization",
 ]
 

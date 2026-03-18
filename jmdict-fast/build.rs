@@ -2,22 +2,91 @@ use anyhow::Result;
 use deunicode::deunicode;
 use fst::MapBuilder;
 use postcard;
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::env;
-use std::io::Cursor;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::{fs::File, io::BufReader};
 
-use build_utils::dict::JmdictData;
+// Dict types inlined from build_utils (now in xtask)
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct Entry {
+    id: String,
+    kanji: Vec<KanjiEntry>,
+    kana: Vec<KanaEntry>,
+    sense: Vec<SenseEntry>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct KanjiEntry {
+    common: bool,
+    text: String,
+    tags: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct KanaEntry {
+    common: bool,
+    text: String,
+    tags: Vec<String>,
+    #[serde(rename = "appliesToKanji")]
+    applies_to_kanji: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct SenseEntry {
+    #[serde(rename = "partOfSpeech")]
+    part_of_speech: Vec<String>,
+    #[serde(rename = "appliesToKanji")]
+    applies_to_kanji: Vec<String>,
+    #[serde(rename = "appliesToKana")]
+    applies_to_kana: Vec<String>,
+    related: Vec<serde_json::Value>,
+    antonym: Vec<serde_json::Value>,
+    field: Vec<String>,
+    dialect: Vec<String>,
+    misc: Vec<String>,
+    info: Vec<String>,
+    #[serde(rename = "languageSource")]
+    language_source: Vec<serde_json::Value>,
+    gloss: Vec<GlossEntry>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct GlossEntry {
+    lang: String,
+    gender: Option<String>,
+    #[serde(rename = "type")]
+    gloss_type: Option<String>,
+    text: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct JmdictData {
+    words: Vec<Entry>,
+}
 
 fn main() -> Result<()> {
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_path = Path::new(&out_dir);
 
-    eprintln!("Parsing JSON...");
-    // let file = File::open("build_data/jmdict-eng-3.6.1.json")?;
-    // let rdr = BufReader::new(file);
-    let rdr = BufReader::new(load_jmdict_json()?);
+    // Check if generated files already exist in OUT_DIR - skip regeneration
+    if out_path.join("entries.bin").exists()
+        && out_path.join("kana.fst").exists()
+        && out_path.join("kanji.fst").exists()
+        && out_path.join("romaji.fst").exists()
+        && out_path.join("id.fst").exists()
+    {
+        eprintln!("✅ Generated data files already exist in OUT_DIR, skipping generation");
+        return Ok(());
+    }
+
+    // Look for cached JSON from xtask in .cache/ directory
+    let json_path = find_cached_json()?;
+
+    eprintln!("Parsing JSON from {:?}...", json_path);
+    let file = File::open(&json_path)?;
+    let rdr = BufReader::new(file);
     let data: JmdictData = serde_json::from_reader(rdr)?;
     let entries = data.words;
     eprintln!("entries: {:?}", entries.len());
@@ -27,7 +96,6 @@ fn main() -> Result<()> {
     let mut kana_map = Vec::new();
     let mut romaji_map = Vec::new();
 
-    // Create a mapping from original ID to sequential ID
     let mut id_mapping = Vec::new();
 
     let mut trimmed_entries = Vec::new();
@@ -53,7 +121,6 @@ fn main() -> Result<()> {
             sense.misc.clear();
             sense.language_source.clear();
             sense.related.clear();
-            // Keep only essential fields: part_of_speech, applies_to_kanji, applies_to_kana, gloss
         }
         trimmed_entries.push(trimmed);
     }
@@ -68,7 +135,6 @@ fn main() -> Result<()> {
     romaji_map.sort();
     id_mapping.sort();
 
-    // Deduplicate by keeping only the first occurrence of each key
     kanji_map.dedup_by_key(|(key, _)| key.clone());
     kana_map.dedup_by_key(|(key, _)| key.clone());
     romaji_map.dedup_by_key(|(key, _)| key.clone());
@@ -93,24 +159,25 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-mod build_utils;
-use build_utils::cache::{load_cached_data, CacheConfig};
+/// Find the cached JMdict JSON file from xtask's .cache/ directory
+fn find_cached_json() -> Result<PathBuf> {
+    // Walk up from CARGO_MANIFEST_DIR to find workspace root with .cache/
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR")?;
+    let mut dir = PathBuf::from(&manifest_dir);
 
-use crate::build_utils::download::download_json_from_tgz;
+    loop {
+        let cache_path = dir.join(".cache").join("jmdict-common.json");
+        if cache_path.exists() {
+            return Ok(cache_path);
+        }
+        if !dir.pop() {
+            break;
+        }
+    }
 
-// Download the JSON file from the GitHub release and cache it
-fn load_jmdict_json() -> Result<Cursor<Vec<u8>>> {
-    let config = CacheConfig::new("jmdict-common.json", "jmdict-version.txt", "3.6.1");
-
-    load_cached_data(config, download_jmdict_json)
-}
-
-const ARTIFACT_URL: &str = "https://github.com/scriptin/jmdict-simplified/releases/download/3.6.1%2B20250714122633/jmdict-eng-3.6.1+20250714122633.json.tgz";
-fn download_jmdict_json() -> Result<Vec<u8>> {
-    let url = ARTIFACT_URL;
-    eprintln!("Downloading dictionary from {url}...");
-    let json_data = download_json_from_tgz(url)?;
-    Ok(json_data)
+    anyhow::bail!(
+        "JMdict JSON not found. Run 'cargo xtask generate' first to download the dictionary data."
+    )
 }
 
 fn write_fst(path: &Path, entries: &[(String, u64)]) -> Result<()> {
@@ -123,16 +190,14 @@ fn write_fst(path: &Path, entries: &[(String, u64)]) -> Result<()> {
     Ok(())
 }
 
-fn write_blob(path: &Path, entries: &[build_utils::dict::Entry]) -> Result<()> {
+fn write_blob(path: &Path, entries: &[Entry]) -> Result<()> {
     use std::io::{BufWriter, Write};
 
     let mut out = BufWriter::new(File::create(path)?);
 
-    // Write entry count first
     let entry_count = entries.len() as u32;
     out.write_all(&entry_count.to_le_bytes())?;
 
-    // Calculate offsets and data blob
     let mut offset_table = Vec::new();
     let mut data_blob = Vec::new();
 
@@ -144,13 +209,11 @@ fn write_blob(path: &Path, entries: &[build_utils::dict::Entry]) -> Result<()> {
         data_blob.extend(postcard_data);
     }
 
-    // Write offset table
     for (offset, len) in &offset_table {
         out.write_all(&offset.to_le_bytes())?;
         out.write_all(&len.to_le_bytes())?;
     }
 
-    // Write data blob
     out.write_all(&data_blob)?;
     Ok(())
 }
