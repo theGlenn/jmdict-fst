@@ -19,6 +19,7 @@
 - xtask dict.rs has Raw* types for JSON deserialization and typed Entry/SenseEntry for postcard serialization
 - All lookup methods return Vec<LookupResult> (not Vec<Entry>) — access entry via .entry field
 - bunpo CandidateWord.reason_chains is Vec<Vec<Reason>> — use Debug format for string conversion
+- Dict lookup internals split into `*_candidates()` (FST search → Vec<MatchCandidate>) and `candidates_to_results()` (deserialize); enables lazy iteration
 - QueryBuilder uses `_inner` private methods — public convenience methods (lookup_exact, etc.) wrap these
 - `dict.lookup(term)` returns QueryBuilder; chain `.mode()` then `.execute()` for builder-style queries
 - fst `levenshtein` feature must be enabled for fuzzy search; `Levenshtein::new(term, distance)` returns Result
@@ -240,4 +241,21 @@
   - Variable-length header fields require storing header_size in the Dict struct rather than using a constant
   - u16-prefixed strings are a simple way to encode variable-length metadata in binary headers
   - chrono::Utc::now().to_rfc3339() gives a standard timestamp format for generated_at
+---
+
+## 2026-03-18 - US-016
+- Added `execute_iter()` to QueryBuilder returning `LookupResultIter` (lazy iterator)
+- Refactored Dict internals: split lookup logic into `*_candidates()` methods (return `Vec<MatchCandidate>`) and `candidates_to_results()` (deserializes)
+- `execute_iter()` passes candidates to `LookupResultIter` which lazily calls `load_entry()` per `next()`
+- Filters (common_only, pos, limit) applied lazily in iterator's `next()` method
+- `execute()` now delegates to `execute_iter().collect()` — no code duplication
+- Removed unused `lookup_fuzzy_inner()` (dead code after refactor)
+- Added 4 new tests: iter matches execute, iter with limit, iter with filters, partial consumption
+- All 35 tests pass
+- Files changed: jmdict-fast/src/lib.rs
+- **Learnings for future iterations:**
+  - Splitting FST search (candidates) from entry deserialization enables lazy iteration
+  - `MatchCandidate` struct holds FST match metadata without the deserialized Entry
+  - Iterator filters must be applied in `next()` not upfront — skip non-matching entries by looping
+  - `vec::IntoIter` is a simple owned iterator for pre-sorted candidates
 ---
