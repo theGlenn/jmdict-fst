@@ -377,6 +377,9 @@ impl<'a> Dict<'a> {
             dict: self,
             term: term.to_string(),
             mode: MatchMode::Exact,
+            common_only: false,
+            pos_filter: Vec::new(),
+            limit: None,
         }
     }
 
@@ -415,6 +418,9 @@ pub struct QueryBuilder<'d, 'a> {
     dict: &'d Dict<'a>,
     term: String,
     mode: MatchMode,
+    common_only: bool,
+    pos_filter: Vec<String>,
+    limit: Option<usize>,
 }
 
 impl<'d, 'a> QueryBuilder<'d, 'a> {
@@ -424,9 +430,27 @@ impl<'d, 'a> QueryBuilder<'d, 'a> {
         self
     }
 
+    /// Filter to entries where any KanjiEntry or KanaEntry has `common: true`.
+    pub fn common_only(mut self, common: bool) -> Self {
+        self.common_only = common;
+        self
+    }
+
+    /// Filter to entries with matching part_of_speech values in any SenseEntry.
+    pub fn pos(mut self, pos: &[&str]) -> Self {
+        self.pos_filter = pos.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
+    /// Cap results after filtering and sorting.
+    pub fn limit(mut self, limit: usize) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
     /// Execute the query and return results.
     pub fn execute(self) -> Result<Vec<LookupResult>, JmdictError> {
-        let results = match self.mode {
+        let mut results = match self.mode {
             MatchMode::Exact => self.dict.lookup_exact_inner(&self.term),
             MatchMode::Prefix => self.dict.lookup_partial_inner(&self.term),
             MatchMode::Deinflect => self.dict.lookup_exact_with_deinflection_inner(&self.term),
@@ -435,6 +459,28 @@ impl<'d, 'a> QueryBuilder<'d, 'a> {
                 Vec::new()
             }
         };
+
+        if self.common_only {
+            results.retain(|lr| {
+                lr.entry.kanji.iter().any(|k| k.common)
+                    || lr.entry.kana.iter().any(|k| k.common)
+            });
+        }
+
+        if !self.pos_filter.is_empty() {
+            results.retain(|lr| {
+                lr.entry.sense.iter().any(|s| {
+                    s.part_of_speech
+                        .iter()
+                        .any(|p| self.pos_filter.iter().any(|f| p.contains(f.as_str())))
+                })
+            });
+        }
+
+        if let Some(limit) = self.limit {
+            results.truncate(limit);
+        }
+
         Ok(results)
     }
 }
@@ -682,5 +728,122 @@ mod tests {
         let direct_results = dict.lookup_exact("猫");
         assert_eq!(builder_results.len(), direct_results.len());
         assert_eq!(builder_results[0].entry.id, direct_results[0].entry.id);
+    }
+
+    #[test]
+    fn test_query_builder_common_only() {
+        let dict = create_test_dict();
+        // 猫 (cat) is a common word
+        let results = dict
+            .lookup("猫")
+            .common_only(true)
+            .execute()
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert!(
+            results[0].entry.kanji.iter().any(|k| k.common)
+                || results[0].entry.kana.iter().any(|k| k.common)
+        );
+    }
+
+    #[test]
+    fn test_query_builder_common_only_prefix() {
+        let dict = create_test_dict();
+        let all_results = dict
+            .lookup("たべ")
+            .mode(MatchMode::Prefix)
+            .execute()
+            .unwrap();
+        let common_results = dict
+            .lookup("たべ")
+            .mode(MatchMode::Prefix)
+            .common_only(true)
+            .execute()
+            .unwrap();
+        // Common-only should return fewer or equal results
+        assert!(common_results.len() <= all_results.len());
+        // All common results should have at least one common reading
+        for r in &common_results {
+            assert!(
+                r.entry.kanji.iter().any(|k| k.common)
+                    || r.entry.kana.iter().any(|k| k.common),
+                "Expected all common_only results to have a common reading"
+            );
+        }
+    }
+
+    #[test]
+    fn test_query_builder_pos_filter() {
+        let dict = create_test_dict();
+        // 食べる has POS codes like "v1", "vt"
+        let results = dict
+            .lookup("食べる")
+            .pos(&["v1"])
+            .execute()
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert!(results[0]
+            .entry
+            .sense
+            .iter()
+            .any(|s| s.part_of_speech.iter().any(|p| p.contains("v1"))));
+    }
+
+    #[test]
+    fn test_query_builder_pos_filter_excludes() {
+        let dict = create_test_dict();
+        // 猫 is a noun, not a verb — filtering for "v1" should exclude it
+        let results = dict
+            .lookup("猫")
+            .pos(&["v1"])
+            .execute()
+            .unwrap();
+        assert!(results.is_empty(), "猫 should not match v1 POS filter");
+    }
+
+    #[test]
+    fn test_query_builder_limit() {
+        let dict = create_test_dict();
+        let all_results = dict
+            .lookup("たべ")
+            .mode(MatchMode::Prefix)
+            .execute()
+            .unwrap();
+        assert!(all_results.len() > 3, "Need enough results to test limit");
+
+        let limited = dict
+            .lookup("たべ")
+            .mode(MatchMode::Prefix)
+            .limit(2)
+            .execute()
+            .unwrap();
+        assert_eq!(limited.len(), 2);
+    }
+
+    #[test]
+    fn test_query_builder_chained_filters() {
+        let dict = create_test_dict();
+        // Chain all filters together — use "v1" POS code (ichidan verb)
+        let results = dict
+            .lookup("たべ")
+            .mode(MatchMode::Prefix)
+            .common_only(true)
+            .pos(&["v1"])
+            .limit(10)
+            .execute()
+            .unwrap();
+        assert!(!results.is_empty());
+        assert!(results.len() <= 10);
+        for r in &results {
+            assert!(
+                r.entry.kanji.iter().any(|k| k.common)
+                    || r.entry.kana.iter().any(|k| k.common)
+            );
+            assert!(r
+                .entry
+                .sense
+                .iter()
+                .any(|s| s.part_of_speech.iter().any(|p| p.contains("v1"))));
+        }
     }
 }
