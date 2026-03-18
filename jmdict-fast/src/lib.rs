@@ -2,7 +2,7 @@ mod error;
 
 pub use error::JmdictError;
 
-use fst::{automaton::Str, Automaton, IntoStreamer, Map, Streamer};
+use fst::{automaton::Levenshtein, automaton::Str, Automaton, IntoStreamer, Map, Streamer};
 use memmap2::Mmap;
 use postcard;
 use serde::Deserialize;
@@ -371,6 +371,54 @@ impl<'a> Dict<'a> {
         results
     }
 
+    fn lookup_fuzzy_inner(&self, term: &str, max_distance: u32) -> Result<Vec<LookupResult>, JmdictError> {
+        let automaton = Levenshtein::new(term, max_distance)
+            .map_err(|_| JmdictError::InvalidQuery)?;
+
+        let mut id_keys: Vec<(u64, String)> = Vec::new();
+
+        for fst in [&self.kana_fst, &self.kanji_fst, &self.romaji_fst] {
+            let mut stream = fst.search(&automaton).into_stream();
+            while let Some((key, val)) = stream.next() {
+                let key_str = String::from_utf8_lossy(key).to_string();
+                id_keys.push((val, key_str));
+            }
+        }
+
+        // Deduplicate by id
+        let mut seen = BTreeSet::new();
+        let mut results = Vec::new();
+        for (id, key) in id_keys {
+            if !seen.insert(id) {
+                continue;
+            }
+            if let Some(entry) = self.load_entry(id) {
+                let is_exact = key == term;
+                let (match_type, score) = if is_exact {
+                    (MatchType::Exact, 1.0)
+                } else {
+                    // Score decreases with edit distance approximation:
+                    // longer keys that match are further away
+                    let key_len = key.chars().count().max(1) as f64;
+                    let term_len = term.chars().count().max(1) as f64;
+                    let len_diff = (key_len - term_len).abs();
+                    let score = 0.5 - (len_diff / (key_len + term_len)) * 0.2;
+                    (MatchType::Fuzzy, score.max(0.1))
+                };
+                results.push(LookupResult {
+                    entry,
+                    match_type,
+                    match_key: key,
+                    score,
+                    deinflection: None,
+                });
+            }
+        }
+
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        Ok(results)
+    }
+
     /// Create a query builder for the given term.
     pub fn lookup(&self, term: &str) -> QueryBuilder<'_, 'a> {
         QueryBuilder {
@@ -380,6 +428,7 @@ impl<'a> Dict<'a> {
             common_only: false,
             pos_filter: Vec::new(),
             limit: None,
+            max_distance: 2,
         }
     }
 
@@ -421,6 +470,7 @@ pub struct QueryBuilder<'d, 'a> {
     common_only: bool,
     pos_filter: Vec<String>,
     limit: Option<usize>,
+    max_distance: u32,
 }
 
 impl<'d, 'a> QueryBuilder<'d, 'a> {
@@ -442,6 +492,12 @@ impl<'d, 'a> QueryBuilder<'d, 'a> {
         self
     }
 
+    /// Set the maximum edit distance for fuzzy search (default: 2).
+    pub fn max_distance(mut self, n: u32) -> Self {
+        self.max_distance = n;
+        self
+    }
+
     /// Cap results after filtering and sorting.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
@@ -455,8 +511,7 @@ impl<'d, 'a> QueryBuilder<'d, 'a> {
             MatchMode::Prefix => self.dict.lookup_partial_inner(&self.term),
             MatchMode::Deinflect => self.dict.lookup_exact_with_deinflection_inner(&self.term),
             MatchMode::Fuzzy => {
-                // Fuzzy search will be implemented in US-013
-                Vec::new()
+                self.dict.lookup_fuzzy_inner(&self.term, self.max_distance)?
             }
         };
 
@@ -844,6 +899,99 @@ mod tests {
                 .sense
                 .iter()
                 .any(|s| s.part_of_speech.iter().any(|p| p.contains("v1"))));
+        }
+    }
+
+    #[test]
+    fn test_fuzzy_search_romaji() {
+        let dict = create_test_dict();
+        // "neko" is exact, "nko" is 1 edit away (missing 'e')
+        let results = dict
+            .lookup("nko")
+            .mode(MatchMode::Fuzzy)
+            .max_distance(1)
+            .execute()
+            .unwrap();
+        assert!(
+            results.iter().any(|r| r.entry.kana.iter().any(|k| k.text == "ねこ")),
+            "Fuzzy search for 'nko' should find ねこ (neko)"
+        );
+        // All fuzzy (non-exact) results should have score < 1.0
+        for r in &results {
+            if r.match_type == MatchType::Fuzzy {
+                assert!(r.score < 1.0, "Fuzzy results should have score < 1.0");
+            }
+        }
+    }
+
+    #[test]
+    fn test_fuzzy_search_exact_match_included() {
+        let dict = create_test_dict();
+        // "neko" should still return an exact match within fuzzy results
+        let results = dict
+            .lookup("neko")
+            .mode(MatchMode::Fuzzy)
+            .max_distance(1)
+            .execute()
+            .unwrap();
+        assert!(
+            results.iter().any(|r| r.match_type == MatchType::Exact && r.match_key == "neko"),
+            "Fuzzy search for exact term should include exact match"
+        );
+    }
+
+    #[test]
+    fn test_fuzzy_search_max_distance() {
+        let dict = create_test_dict();
+        // With distance 0, should only get exact matches
+        let results_d0 = dict
+            .lookup("neko")
+            .mode(MatchMode::Fuzzy)
+            .max_distance(0)
+            .execute()
+            .unwrap();
+        for r in &results_d0 {
+            assert_eq!(r.match_type, MatchType::Exact, "Distance 0 should only return exact matches");
+        }
+
+        // With distance 2, should get more results than distance 1
+        let results_d1 = dict
+            .lookup("neko")
+            .mode(MatchMode::Fuzzy)
+            .max_distance(1)
+            .execute()
+            .unwrap();
+        let results_d2 = dict
+            .lookup("neko")
+            .mode(MatchMode::Fuzzy)
+            .max_distance(2)
+            .execute()
+            .unwrap();
+        assert!(
+            results_d2.len() >= results_d1.len(),
+            "Higher distance should return at least as many results"
+        );
+    }
+
+    #[test]
+    fn test_fuzzy_search_with_filters() {
+        let dict = create_test_dict();
+        // Fuzzy search with common_only filter
+        let results = dict
+            .lookup("neko")
+            .mode(MatchMode::Fuzzy)
+            .max_distance(2)
+            .common_only(true)
+            .limit(5)
+            .execute()
+            .unwrap();
+        assert!(results.len() <= 5);
+        for r in &results {
+            assert!(
+                r.entry.kanji.iter().any(|k| k.common)
+                    || r.entry.kana.iter().any(|k| k.common),
+                "common_only filter should apply to fuzzy results"
+            );
         }
     }
 }
