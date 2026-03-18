@@ -1,5 +1,9 @@
 use clap::{Parser, Subcommand};
+use deunicode::deunicode;
+use fst::MapBuilder;
+use std::fs;
 use std::io::BufReader;
+use std::path::{Path, PathBuf};
 
 mod cache;
 mod dict;
@@ -21,30 +25,136 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Generate FST and entries.bin data files from JMdict
-    Generate,
+    Generate {
+        /// Output directory for generated files
+        #[arg(short, long, default_value = "dist")]
+        output: PathBuf,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Generate => {
-            generate()?;
+        Commands::Generate { output } => {
+            generate(&output)?;
         }
     }
 
     Ok(())
 }
 
-fn generate() -> anyhow::Result<()> {
+fn generate(output_dir: &Path) -> anyhow::Result<()> {
+    // Ensure output directory exists
+    fs::create_dir_all(output_dir)?;
+
     eprintln!("Downloading JMdict data...");
     let cursor = load_jmdict_json()?;
 
     eprintln!("Parsing JSON...");
     let rdr = BufReader::new(cursor);
     let data: dict::JmdictData = serde_json::from_reader(rdr)?;
-    eprintln!("Downloaded {} entries", data.words.len());
+    let entries = data.words;
+    eprintln!("Parsed {} entries", entries.len());
 
+    eprintln!("Extracting index keys...");
+    let mut kanji_map = Vec::new();
+    let mut kana_map = Vec::new();
+    let mut romaji_map = Vec::new();
+    let mut id_mapping = Vec::new();
+
+    let mut trimmed_entries = Vec::new();
+    for (seq_id, entry) in entries.iter().enumerate() {
+        let id = seq_id as u64;
+        id_mapping.push((entry.id.clone(), id));
+        for k in &entry.kanji {
+            kanji_map.push((k.text.clone(), id));
+            romaji_map.push((deunicode(&k.text).to_lowercase(), id));
+        }
+        for k in &entry.kana {
+            kana_map.push((k.text.clone(), id));
+            romaji_map.push((deunicode(&k.text).to_lowercase(), id));
+        }
+
+        // Create optimized entry by trimming unused fields
+        let mut trimmed = entry.clone();
+        for sense in &mut trimmed.sense {
+            sense.antonym.clear();
+            sense.info.clear();
+            sense.field.clear();
+            sense.dialect.clear();
+            sense.misc.clear();
+            sense.language_source.clear();
+            sense.related.clear();
+        }
+        trimmed_entries.push(trimmed);
+    }
+
+    eprintln!("Sorting and deduplicating...");
+    kanji_map.sort();
+    kana_map.sort();
+    romaji_map.sort();
+    id_mapping.sort();
+
+    kanji_map.dedup_by_key(|(key, _)| key.clone());
+    kana_map.dedup_by_key(|(key, _)| key.clone());
+    romaji_map.dedup_by_key(|(key, _)| key.clone());
+    id_mapping.dedup_by_key(|(key, _)| key.clone());
+
+    eprintln!("Building FSTs...");
+    eprintln!("  - kanji.fst: {} entries", kanji_map.len());
+    eprintln!("  - kana.fst: {} entries", kana_map.len());
+    eprintln!("  - romaji.fst: {} entries", romaji_map.len());
+    eprintln!("  - id.fst: {} entries", id_mapping.len());
+
+    write_fst(&output_dir.join("kanji.fst"), &kanji_map)?;
+    write_fst(&output_dir.join("kana.fst"), &kana_map)?;
+    write_fst(&output_dir.join("romaji.fst"), &romaji_map)?;
+    write_fst(&output_dir.join("id.fst"), &id_mapping)?;
+
+    eprintln!("Writing binary blob...");
+    eprintln!("Writing {} entries to binary blob", trimmed_entries.len());
+    write_blob(&output_dir.join("entries.bin"), &trimmed_entries)?;
+
+    eprintln!("Done ✅ Output written to {}", output_dir.display());
+    Ok(())
+}
+
+fn write_fst(path: &Path, entries: &[(String, u64)]) -> anyhow::Result<()> {
+    let wtr = fs::File::create(path)?;
+    let mut builder = MapBuilder::new(wtr)?;
+    for (k, v) in entries {
+        builder.insert(k, *v)?;
+    }
+    builder.finish()?;
+    Ok(())
+}
+
+fn write_blob(path: &Path, entries: &[dict::Entry]) -> anyhow::Result<()> {
+    use std::io::{BufWriter, Write};
+
+    let mut out = BufWriter::new(fs::File::create(path)?);
+
+    let entry_count = entries.len() as u32;
+    out.write_all(&entry_count.to_le_bytes())?;
+
+    let mut offset_table = Vec::new();
+    let mut data_blob = Vec::new();
+
+    for entry in entries {
+        let postcard_data = postcard::to_allocvec(entry)?;
+        let offset = data_blob.len() as u32;
+        let len = postcard_data.len() as u32;
+        offset_table.push((offset, len));
+        data_blob.extend(postcard_data);
+    }
+
+    for (offset, len) in &offset_table {
+        out.write_all(&offset.to_le_bytes())?;
+        out.write_all(&len.to_le_bytes())?;
+    }
+
+    out.write_all(&data_blob)?;
     Ok(())
 }
 

@@ -1,8 +1,13 @@
 ## Codebase Patterns
 - Workspace uses `version.workspace = true` etc. for shared package metadata
 - `bunpo` is a local workspace crate (deinflection engine) used by jmdict-fast
-- jmdict-fast has build.rs that downloads/generates data at build time (to be refactored)
+- jmdict-fast build.rs copies pre-generated data from dist/ to OUT_DIR (no longer reads JSON)
+- xtask caching uses project-level .cache/ directory (found by walking up to workspace root)
+- Dict types (Entry, KanjiEntry, etc.) are duplicated: lib.rs (Deserialize only) and xtask/src/dict.rs (Serialize+Deserialize for generation)
+- build.rs skips regeneration if OUT_DIR already has generated files
 - Use `anyhow` for error handling in xtask; library will get typed errors later
+- build.rs copies data from dist/ to OUT_DIR; rerun triggered by `cargo:rerun-if-changed=../dist`
+- `cargo xtask generate` outputs to dist/ by default (configurable with --output flag)
 
 ---
 
@@ -17,4 +22,34 @@
   - bunpo is a local workspace crate, must stay in workspace members
   - clap with derive feature provides clean subcommand parsing
   - Cargo.lock auto-updates when adding new workspace members
+---
+
+## 2026-03-18 - US-002
+- Moved build_utils/cache.rs, download.rs, dict.rs to xtask/src/ modules
+- xtask `generate` now downloads JMdict JSON and caches to .cache/jmdict-common.json
+- Removed reqwest, flate2, tar from jmdict-fast build-dependencies
+- Removed build_utils/ directory (including CACHING.md, CACHE_QUICK_REFERENCE.md)
+- build.rs updated: reads JSON from .cache/, skips if OUT_DIR already has files, dict types inlined
+- Added .cache/ to .gitignore
+- Files changed: .gitignore, Cargo.lock, jmdict-fast/Cargo.toml, jmdict-fast/build.rs, xtask/src/main.rs, xtask/src/cache.rs (new), xtask/src/dict.rs (new), xtask/src/download.rs (new)
+- Files removed: jmdict-fast/build_utils/ (entire directory)
+- **Learnings for future iterations:**
+  - build.rs OUT_DIR changes when build dependencies or build.rs itself changes, so cached files in OUT_DIR may not persist across refactors
+  - Cache module adapted from OUT_DIR env var to project-level .cache/ by walking up to workspace root Cargo.toml
+  - bunpo was only a build-dependency for deinflection during generation; removed from build-deps since build.rs doesn't use it
+---
+
+## 2026-03-18 - US-003
+- Moved FST building and entries.bin generation from build.rs into xtask generate command
+- xtask generate now produces kana.fst, kanji.fst, romaji.fst, id.fst, entries.bin in configurable output dir (default: dist/)
+- Added --output flag to xtask generate subcommand via clap
+- build.rs reduced to copying pre-generated files from dist/ to OUT_DIR
+- Removed all build-dependencies from jmdict-fast/Cargo.toml (anyhow, deunicode, fst, postcard, serde, serde_derive, serde_json)
+- Added dist/ to .gitignore
+- All 11 existing tests pass with xtask-generated data
+- Files changed: .gitignore, jmdict-fast/Cargo.toml, jmdict-fast/build.rs, xtask/src/main.rs
+- **Learnings for future iterations:**
+  - build.rs must have `cargo:rerun-if-changed` pointing to dist/ so it picks up new data after regeneration
+  - After removing build-dependencies, cargo may cache stale OUT_DIR; touching build.rs forces a fresh run
+  - The [build-dependencies] section must remain (even if empty) or be removed entirely — left empty for now for future US-005 feature gating
 ---
