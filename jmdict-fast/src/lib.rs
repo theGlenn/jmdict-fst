@@ -7,7 +7,17 @@ use memmap2::Mmap;
 use postcard;
 use serde::Deserialize;
 use std::collections::BTreeSet;
-use std::{borrow::Cow, fs::File, path::Path};
+use std::{borrow::Cow, fs::File, path::Path, vec};
+
+/// A raw match candidate from FST search, before entry deserialization.
+#[derive(Clone)]
+struct MatchCandidate {
+    id: u64,
+    key: String,
+    match_type: MatchType,
+    score: f64,
+    deinflection: Option<DeinflectionInfo>,
+}
 
 /// How a lookup result matched the query term.
 #[derive(Debug, Clone, PartialEq)]
@@ -307,6 +317,10 @@ impl<'a> Dict<'a> {
     }
 
     fn lookup_exact_inner(&self, term: &str) -> Vec<LookupResult> {
+        self.candidates_to_results(self.exact_candidates(term))
+    }
+
+    fn exact_candidates(&self, term: &str) -> Vec<MatchCandidate> {
         let mut ids = Vec::new();
 
         if let Some(id) = self.kana_fst.get(term) {
@@ -323,14 +337,12 @@ impl<'a> Dict<'a> {
         ids.dedup();
 
         ids.into_iter()
-            .filter_map(|id| {
-                self.load_entry(id).map(|entry| LookupResult {
-                    entry,
-                    match_type: MatchType::Exact,
-                    match_key: term.to_string(),
-                    score: 1.0,
-                    deinflection: None,
-                })
+            .map(|id| MatchCandidate {
+                id,
+                key: term.to_string(),
+                match_type: MatchType::Exact,
+                score: 1.0,
+                deinflection: None,
             })
             .collect()
     }
@@ -343,43 +355,48 @@ impl<'a> Dict<'a> {
     }
 
     fn lookup_exact_with_deinflection_inner(&self, term: &str) -> Vec<LookupResult> {
-        // First lookup exact
-        let results = self.lookup_exact_inner(term);
-        if !results.is_empty() {
-            return results;
+        self.candidates_to_results(self.deinflect_candidates(term))
+    }
+
+    fn deinflect_candidates(&self, term: &str) -> Vec<MatchCandidate> {
+        // First try exact
+        let exact = self.exact_candidates(term);
+        if !exact.is_empty() {
+            return exact;
         }
 
         // Then deinflect
         let deinflected = self.deinflector.deinflect(term);
         let mut seen_ids = BTreeSet::new();
-        let mut results = Vec::new();
+        let mut candidates = Vec::new();
         for candidate in deinflected {
-            let exact = self.lookup_exact_inner(&candidate.word);
-            for mut lr in exact {
-                // Deduplicate by entry id
-                if !seen_ids.insert(lr.entry.id.clone()) {
+            let exact = self.exact_candidates(&candidate.word);
+            for mc in exact {
+                if !seen_ids.insert(mc.id) {
                     continue;
                 }
-                lr.match_type = MatchType::Deinflected;
-                lr.match_key = candidate.word.clone();
-                lr.score = 0.75;
-                lr.deinflection = Some(DeinflectionInfo {
-                    original_form: term.to_string(),
-                    base_form: candidate.word.clone(),
-                    rules: candidate
-                        .reason_chains
-                        .iter()
-                        .flatten()
-                        .map(|r| format!("{:?}", r))
-                        .collect(),
+                candidates.push(MatchCandidate {
+                    id: mc.id,
+                    key: candidate.word.clone(),
+                    match_type: MatchType::Deinflected,
+                    score: 0.75,
+                    deinflection: Some(DeinflectionInfo {
+                        original_form: term.to_string(),
+                        base_form: candidate.word.clone(),
+                        rules: candidate
+                            .reason_chains
+                            .iter()
+                            .flatten()
+                            .map(|r| format!("{:?}", r))
+                            .collect(),
+                    }),
                 });
-                results.push(lr);
             }
         }
 
         // Sort by score descending
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
-        results
+        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        candidates
     }
 
     /// Lookup entries that start with the given term (prefix search).
@@ -390,6 +407,10 @@ impl<'a> Dict<'a> {
     }
 
     fn lookup_partial_inner(&self, prefix: &str) -> Vec<LookupResult> {
+        self.candidates_to_results(self.prefix_candidates(prefix))
+    }
+
+    fn prefix_candidates(&self, prefix: &str) -> Vec<MatchCandidate> {
         let mut id_keys: Vec<(u64, String)> = Vec::new();
 
         let automaton = Str::new(prefix).starts_with();
@@ -404,35 +425,33 @@ impl<'a> Dict<'a> {
 
         // Deduplicate by id, keeping first match key
         let mut seen = BTreeSet::new();
-        let mut results = Vec::new();
+        let mut candidates = Vec::new();
         for (id, key) in id_keys {
             if !seen.insert(id) {
                 continue;
             }
-            if let Some(entry) = self.load_entry(id) {
-                let is_exact = key == prefix;
-                let score = if is_exact { 1.0 } else { 0.5 };
-                let match_type = if is_exact {
-                    MatchType::Exact
-                } else {
-                    MatchType::Prefix
-                };
-                results.push(LookupResult {
-                    entry,
-                    match_type,
-                    match_key: key,
-                    score,
-                    deinflection: None,
-                });
-            }
+            let is_exact = key == prefix;
+            let score = if is_exact { 1.0 } else { 0.5 };
+            let match_type = if is_exact {
+                MatchType::Exact
+            } else {
+                MatchType::Prefix
+            };
+            candidates.push(MatchCandidate {
+                id,
+                key,
+                match_type,
+                score,
+                deinflection: None,
+            });
         }
 
         // Sort by score descending
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
-        results
+        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        candidates
     }
 
-    fn lookup_fuzzy_inner(&self, term: &str, max_distance: u32) -> Result<Vec<LookupResult>, JmdictError> {
+    fn fuzzy_candidates(&self, term: &str, max_distance: u32) -> Result<Vec<MatchCandidate>, JmdictError> {
         let automaton = Levenshtein::new(term, max_distance)
             .map_err(|_| JmdictError::InvalidQuery)?;
 
@@ -448,36 +467,32 @@ impl<'a> Dict<'a> {
 
         // Deduplicate by id
         let mut seen = BTreeSet::new();
-        let mut results = Vec::new();
+        let mut candidates = Vec::new();
         for (id, key) in id_keys {
             if !seen.insert(id) {
                 continue;
             }
-            if let Some(entry) = self.load_entry(id) {
-                let is_exact = key == term;
-                let (match_type, score) = if is_exact {
-                    (MatchType::Exact, 1.0)
-                } else {
-                    // Score decreases with edit distance approximation:
-                    // longer keys that match are further away
-                    let key_len = key.chars().count().max(1) as f64;
-                    let term_len = term.chars().count().max(1) as f64;
-                    let len_diff = (key_len - term_len).abs();
-                    let score = 0.5 - (len_diff / (key_len + term_len)) * 0.2;
-                    (MatchType::Fuzzy, score.max(0.1))
-                };
-                results.push(LookupResult {
-                    entry,
-                    match_type,
-                    match_key: key,
-                    score,
-                    deinflection: None,
-                });
-            }
+            let is_exact = key == term;
+            let (match_type, score) = if is_exact {
+                (MatchType::Exact, 1.0)
+            } else {
+                let key_len = key.chars().count().max(1) as f64;
+                let term_len = term.chars().count().max(1) as f64;
+                let len_diff = (key_len - term_len).abs();
+                let score = 0.5 - (len_diff / (key_len + term_len)) * 0.2;
+                (MatchType::Fuzzy, score.max(0.1))
+            };
+            candidates.push(MatchCandidate {
+                id,
+                key,
+                match_type,
+                score,
+                deinflection: None,
+            });
         }
 
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
-        Ok(results)
+        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        Ok(candidates)
     }
 
     /// Create a query builder for the given term.
@@ -506,6 +521,22 @@ impl<'a> Dict<'a> {
         }
     }
 
+    /// Convert match candidates to results by deserializing entries.
+    fn candidates_to_results(&self, candidates: Vec<MatchCandidate>) -> Vec<LookupResult> {
+        candidates
+            .into_iter()
+            .filter_map(|mc| {
+                self.load_entry(mc.id).map(|entry| LookupResult {
+                    entry,
+                    match_type: mc.match_type,
+                    match_key: mc.key,
+                    score: mc.score,
+                    deinflection: mc.deinflection,
+                })
+            })
+            .collect()
+    }
+
     // When reading offsets, start after header + entry_count (4 bytes)
     fn load_entry(&self, id: u64) -> Option<Entry> {
         let hs = self.header_size;
@@ -532,6 +563,64 @@ impl<'a> Dict<'a> {
         let end = start + len as usize;
 
         postcard::from_bytes(&self.entries_blob[start..end]).ok()
+    }
+}
+
+/// An iterator that lazily deserializes dictionary entries from pre-sorted match candidates.
+pub struct LookupResultIter<'d, 'a> {
+    dict: &'d Dict<'a>,
+    candidates: vec::IntoIter<MatchCandidate>,
+    common_only: bool,
+    pos_filter: Vec<String>,
+    limit: Option<usize>,
+    yielded: usize,
+}
+
+impl<'d, 'a> Iterator for LookupResultIter<'d, 'a> {
+    type Item = LookupResult;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(limit) = self.limit {
+            if self.yielded >= limit {
+                return None;
+            }
+        }
+
+        loop {
+            let mc = self.candidates.next()?;
+            let entry = match self.dict.load_entry(mc.id) {
+                Some(e) => e,
+                None => continue,
+            };
+
+            if self.common_only {
+                let is_common = entry.kanji.iter().any(|k| k.common)
+                    || entry.kana.iter().any(|k| k.common);
+                if !is_common {
+                    continue;
+                }
+            }
+
+            if !self.pos_filter.is_empty() {
+                let matches_pos = entry.sense.iter().any(|s| {
+                    s.part_of_speech
+                        .iter()
+                        .any(|p| self.pos_filter.iter().any(|f| p.contains(f.as_str())))
+                });
+                if !matches_pos {
+                    continue;
+                }
+            }
+
+            self.yielded += 1;
+            return Some(LookupResult {
+                entry,
+                match_type: mc.match_type,
+                match_key: mc.key,
+                score: mc.score,
+                deinflection: mc.deinflection,
+            });
+        }
     }
 }
 
@@ -577,39 +666,31 @@ impl<'d, 'a> QueryBuilder<'d, 'a> {
         self
     }
 
-    /// Execute the query and return results.
+    /// Execute the query and return all results collected into a Vec.
     pub fn execute(self) -> Result<Vec<LookupResult>, JmdictError> {
-        let mut results = match self.mode {
-            MatchMode::Exact => self.dict.lookup_exact_inner(&self.term),
-            MatchMode::Prefix => self.dict.lookup_partial_inner(&self.term),
-            MatchMode::Deinflect => self.dict.lookup_exact_with_deinflection_inner(&self.term),
-            MatchMode::Fuzzy => {
-                self.dict.lookup_fuzzy_inner(&self.term, self.max_distance)?
-            }
+        Ok(self.execute_iter()?.collect())
+    }
+
+    /// Execute the query and return a lazy iterator that deserializes entries on demand.
+    ///
+    /// This is more memory-efficient than `execute()` for large result sets (e.g., prefix
+    /// or fuzzy queries with many matches), as entries are only deserialized as consumed.
+    pub fn execute_iter(self) -> Result<LookupResultIter<'d, 'a>, JmdictError> {
+        let candidates = match self.mode {
+            MatchMode::Exact => self.dict.exact_candidates(&self.term),
+            MatchMode::Prefix => self.dict.prefix_candidates(&self.term),
+            MatchMode::Deinflect => self.dict.deinflect_candidates(&self.term),
+            MatchMode::Fuzzy => self.dict.fuzzy_candidates(&self.term, self.max_distance)?,
         };
 
-        if self.common_only {
-            results.retain(|lr| {
-                lr.entry.kanji.iter().any(|k| k.common)
-                    || lr.entry.kana.iter().any(|k| k.common)
-            });
-        }
-
-        if !self.pos_filter.is_empty() {
-            results.retain(|lr| {
-                lr.entry.sense.iter().any(|s| {
-                    s.part_of_speech
-                        .iter()
-                        .any(|p| self.pos_filter.iter().any(|f| p.contains(f.as_str())))
-                })
-            });
-        }
-
-        if let Some(limit) = self.limit {
-            results.truncate(limit);
-        }
-
-        Ok(results)
+        Ok(LookupResultIter {
+            dict: self.dict,
+            candidates: candidates.into_iter(),
+            common_only: self.common_only,
+            pos_filter: self.pos_filter,
+            limit: self.limit,
+            yielded: 0,
+        })
     }
 }
 
@@ -1202,6 +1283,83 @@ mod tests {
                 term
             );
         }
+    }
+
+    #[test]
+    fn test_execute_iter_returns_same_as_execute() {
+        let dict = create_test_dict();
+        let collected: Vec<_> = dict
+            .lookup("たべ")
+            .mode(MatchMode::Prefix)
+            .execute_iter()
+            .unwrap()
+            .collect();
+        let executed = dict
+            .lookup("たべ")
+            .mode(MatchMode::Prefix)
+            .execute()
+            .unwrap();
+        assert_eq!(collected.len(), executed.len());
+        for (a, b) in collected.iter().zip(executed.iter()) {
+            assert_eq!(a.entry.id, b.entry.id);
+            assert_eq!(a.match_type, b.match_type);
+            assert_eq!(a.score, b.score);
+        }
+    }
+
+    #[test]
+    fn test_execute_iter_lazy_with_limit() {
+        let dict = create_test_dict();
+        // Take only 2 from a prefix query that has many results
+        let iter = dict
+            .lookup("たべ")
+            .mode(MatchMode::Prefix)
+            .limit(2)
+            .execute_iter()
+            .unwrap();
+        let results: Vec<_> = iter.collect();
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn test_execute_iter_with_filters() {
+        let dict = create_test_dict();
+        let results: Vec<_> = dict
+            .lookup("たべ")
+            .mode(MatchMode::Prefix)
+            .common_only(true)
+            .pos(&["v1"])
+            .limit(5)
+            .execute_iter()
+            .unwrap()
+            .collect();
+        assert!(!results.is_empty());
+        assert!(results.len() <= 5);
+        for r in &results {
+            assert!(
+                r.entry.kanji.iter().any(|k| k.common)
+                    || r.entry.kana.iter().any(|k| k.common)
+            );
+            assert!(r.entry.sense.iter().any(|s| {
+                s.part_of_speech.iter().any(|p| p.contains("v1"))
+            }));
+        }
+    }
+
+    #[test]
+    fn test_execute_iter_partial_consumption() {
+        let dict = create_test_dict();
+        // Only take first result from iterator — rest should not be deserialized
+        let mut iter = dict
+            .lookup("たべ")
+            .mode(MatchMode::Prefix)
+            .execute_iter()
+            .unwrap();
+        let first = iter.next();
+        assert!(first.is_some(), "Should have at least one result");
+        // Iterator still has more
+        let second = iter.next();
+        assert!(second.is_some(), "Should have more than one result for prefix たべ");
     }
 
     #[test]
