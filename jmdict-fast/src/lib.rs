@@ -432,6 +432,19 @@ impl<'a> Dict<'a> {
         }
     }
 
+    /// Create a batch query builder for multiple terms.
+    pub fn lookup_batch(&self, terms: &[&str]) -> BatchQueryBuilder<'_, 'a> {
+        BatchQueryBuilder {
+            dict: self,
+            terms: terms.iter().map(|s| s.to_string()).collect(),
+            mode: MatchMode::Exact,
+            common_only: false,
+            pos_filter: Vec::new(),
+            limit: None,
+            max_distance: 2,
+        }
+    }
+
     // When reading offsets, start after header (8 bytes) + entry_count (4 bytes)
     fn load_entry(&self, id: u64) -> Option<Entry> {
         let count = u32::from_le_bytes(
@@ -537,6 +550,69 @@ impl<'d, 'a> QueryBuilder<'d, 'a> {
         }
 
         Ok(results)
+    }
+}
+
+/// A builder for configuring and executing batch dictionary lookups.
+pub struct BatchQueryBuilder<'d, 'a> {
+    dict: &'d Dict<'a>,
+    terms: Vec<String>,
+    mode: MatchMode,
+    common_only: bool,
+    pos_filter: Vec<String>,
+    limit: Option<usize>,
+    max_distance: u32,
+}
+
+impl<'d, 'a> BatchQueryBuilder<'d, 'a> {
+    /// Set the match mode for this batch query.
+    pub fn mode(mut self, mode: MatchMode) -> Self {
+        self.mode = mode;
+        self
+    }
+
+    /// Filter to entries where any KanjiEntry or KanaEntry has `common: true`.
+    pub fn common_only(mut self, common: bool) -> Self {
+        self.common_only = common;
+        self
+    }
+
+    /// Filter to entries with matching part_of_speech values in any SenseEntry.
+    pub fn pos(mut self, pos: &[&str]) -> Self {
+        self.pos_filter = pos.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
+    /// Cap results per term after filtering and sorting.
+    pub fn limit(mut self, limit: usize) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    /// Set the maximum edit distance for fuzzy search (default: 2).
+    pub fn max_distance(mut self, n: u32) -> Self {
+        self.max_distance = n;
+        self
+    }
+
+    /// Execute the batch query and return results paired with each input term.
+    pub fn execute(self) -> Result<Vec<(String, Vec<LookupResult>)>, JmdictError> {
+        let pos_refs: Vec<&str> = self.pos_filter.iter().map(|s| s.as_str()).collect();
+        let mut batch_results = Vec::with_capacity(self.terms.len());
+        for term in &self.terms {
+            let mut builder = self
+                .dict
+                .lookup(term)
+                .mode(self.mode.clone())
+                .common_only(self.common_only)
+                .pos(&pos_refs)
+                .max_distance(self.max_distance);
+            if let Some(limit) = self.limit {
+                builder = builder.limit(limit);
+            }
+            batch_results.push((term.clone(), builder.execute()?));
+        }
+        Ok(batch_results)
     }
 }
 
@@ -991,6 +1067,79 @@ mod tests {
                 r.entry.kanji.iter().any(|k| k.common)
                     || r.entry.kana.iter().any(|k| k.common),
                 "common_only filter should apply to fuzzy results"
+            );
+        }
+    }
+
+    #[test]
+    fn test_batch_lookup_basic() {
+        let dict = create_test_dict();
+        let results = dict
+            .lookup_batch(&["猫", "犬", "食べる"])
+            .execute()
+            .unwrap();
+        assert_eq!(results.len(), 3);
+        assert_eq!(results[0].0, "猫");
+        assert_eq!(results[1].0, "犬");
+        assert_eq!(results[2].0, "食べる");
+        // Each term should have results
+        for (term, entries) in &results {
+            assert!(!entries.is_empty(), "Expected results for {}", term);
+        }
+    }
+
+    #[test]
+    fn test_batch_lookup_with_filters() {
+        let dict = create_test_dict();
+        let results = dict
+            .lookup_batch(&["猫", "食べる"])
+            .common_only(true)
+            .pos(&["n"])
+            .execute()
+            .unwrap();
+        assert_eq!(results.len(), 2);
+        // 猫 is a noun, should have results
+        assert!(!results[0].1.is_empty(), "猫 should match noun filter");
+        // 食べる is a verb, should be filtered out by noun POS
+        assert!(results[1].1.is_empty(), "食べる should not match noun filter");
+    }
+
+    #[test]
+    fn test_batch_lookup_with_mode() {
+        let dict = create_test_dict();
+        let results = dict
+            .lookup_batch(&["たべ"])
+            .mode(MatchMode::Prefix)
+            .limit(3)
+            .execute()
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].0, "たべ");
+        assert!(results[0].1.len() <= 3);
+        assert!(!results[0].1.is_empty());
+    }
+
+    #[test]
+    fn test_batch_lookup_empty_terms() {
+        let dict = create_test_dict();
+        let results = dict.lookup_batch(&[]).execute().unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_batch_lookup_matches_individual() {
+        let dict = create_test_dict();
+        let terms = &["猫", "犬"];
+        let batch = dict.lookup_batch(terms).execute().unwrap();
+
+        // Batch results should match individual lookups
+        for (term, batch_entries) in &batch {
+            let individual = dict.lookup(term).execute().unwrap();
+            assert_eq!(
+                batch_entries.len(),
+                individual.len(),
+                "Batch and individual results should match for {}",
+                term
             );
         }
     }
