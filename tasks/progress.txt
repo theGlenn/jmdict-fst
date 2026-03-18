@@ -1,0 +1,20 @@
+## Codebase Patterns
+- Workspace uses `version.workspace = true` etc. for shared package metadata
+- `bunpo` is a local workspace crate (deinflection engine) used by jmdict-fast
+- jmdict-fast has build.rs that downloads/generates data at build time (to be refactored)
+- Use `anyhow` for error handling in xtask; library will get typed errors later
+
+---
+
+## 2026-03-18 - US-001
+- Created xtask workspace member with Cargo.toml and src/main.rs
+- Root Cargo.toml updated: members = ["bunpo", "jmdict-fast", "xtask"]
+- xtask/Cargo.toml has all required deps: reqwest, flate2, tar, serde, serde_json, serde_derive, simd-json, fst, postcard, deunicode, unicode-normalization, anyhow, clap
+- xtask/src/main.rs has clap-based CLI with `generate` subcommand (prints "not yet implemented")
+- `cargo check --workspace` passes
+- Files changed: Cargo.toml, xtask/Cargo.toml (new), xtask/src/main.rs (new)
+- **Learnings for future iterations:**
+  - bunpo is a local workspace crate, must stay in workspace members
+  - clap with derive feature provides clean subcommand parsing
+  - Cargo.lock auto-updates when adding new workspace members
+---

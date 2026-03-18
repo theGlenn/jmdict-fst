@@ -1,0 +1,261 @@
+{
+  "project": "jmdict-fast",
+  "branchName": "ralph/build-refactor-and-api",
+  "description": "Refactor build system to decouple data generation from compilation, then augment the public API with query builder, fuzzy search, proper errors, and batch lookups for FFI readiness",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create Cargo workspace with xtask member",
+      "description": "As a contributor, I want the repo structured as a Cargo workspace with jmdict-fast and xtask as members, so that data generation tooling lives alongside the library.",
+      "acceptanceCriteria": [
+        "Root Cargo.toml defines a workspace with members: jmdict-fast, xtask",
+        "xtask/Cargo.toml exists with dependencies: reqwest (blocking, rustls-tls), flate2, tar, serde, serde_json, serde_derive, simd-json, fst, postcard, deunicode, unicode-normalization, anyhow, clap",
+        "xtask/src/main.rs has a skeleton main() that parses a 'generate' subcommand using clap and prints 'not yet implemented'",
+        "cargo check --workspace succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Move download and caching logic to xtask",
+      "description": "As a contributor, I want all JMdict download and caching logic moved from build_utils/ into the xtask crate, so the library has no network dependencies at build time.",
+      "acceptanceCriteria": [
+        "build_utils/cache.rs, build_utils/download.rs, build_utils/dict.rs, and build_utils/mod.rs content is moved to xtask/src/ modules",
+        "xtask 'generate' subcommand downloads JMdict simplified JSON using the moved caching logic",
+        "jmdict-fast/Cargo.toml no longer has reqwest, flate2, or tar as build-dependencies",
+        "build_utils/ directory is removed from jmdict-fast",
+        "cargo check --workspace succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Move FST and entries.bin generation to xtask",
+      "description": "As a contributor, I want the xtask generate command to produce kana.fst, kanji.fst, romaji.fst, id.fst, and entries.bin in a configurable output directory.",
+      "acceptanceCriteria": [
+        "xtask 'generate' subcommand parses downloaded JSON into entries, builds 4 FST maps and serializes entries with postcard",
+        "Output files are written to a configurable directory (--output flag, default: dist/)",
+        "FST keys are sorted and deduplicated before building",
+        "Generation logic from jmdict-fast/build.rs is moved into xtask; build.rs is reduced to only handle include_bytes for embedded mode",
+        "Running 'cargo xtask generate' produces valid kana.fst, kanji.fst, romaji.fst, id.fst, entries.bin in dist/",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Add binary format version header to entries.bin",
+      "description": "As a developer, I want entries.bin to include a magic number and version so that loading mismatched data gives a clear error.",
+      "acceptanceCriteria": [
+        "entries.bin starts with magic bytes b'JMDF' (4 bytes) followed by u32 format version (4 bytes), then entry count and data",
+        "Xtask generate writes the magic number and version 1 into generated entries.bin",
+        "Dict loading validates magic number and version on open",
+        "Mismatched version returns error: 'Data format version X, library expects Y. Regenerate with cargo xtask generate.'",
+        "A constant FORMAT_VERSION is defined in jmdict-fast/src/lib.rs",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Feature-gate embedded mode with include_bytes",
+      "description": "As a Rust developer, I want an 'embedded' Cargo feature flag that controls whether dictionary data is baked into the binary via include_bytes.",
+      "acceptanceCriteria": [
+        "Cargo.toml defines features = { embedded = [] } with no default features",
+        "Dict::load_embedded() is gated behind #[cfg(feature = \"embedded\")] and uses include_bytes!() for all data files",
+        "Without 'embedded' feature, the library builds with no data files on disk",
+        "Dict::load_default() tries embedded (if feature enabled), then filesystem path, then JMDICT_DATA env var",
+        "build.rs only runs include_bytes logic when 'embedded' feature is active; emits cargo:warning if data files missing",
+        "Without 'embedded' feature, build.rs is a no-op",
+        "Typecheck passes with: cargo check -p jmdict-fast AND cargo check -p jmdict-fast --features embedded (when dist/ files exist)"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Preserve full JMdict entry data",
+      "description": "As a developer, I want all JMdict fields preserved in entries.bin so I can access antonyms, dialect info, field tags, and other metadata.",
+      "acceptanceCriteria": [
+        "SenseEntry struct includes all fields: antonym, field, dialect, misc, info, language_source, related (as Vec<String> or Vec<serde_json::Value> as appropriate)",
+        "Xtask generate no longer strips these fields during entry processing",
+        "Format version is bumped to 2",
+        "Existing lookup tests still pass after regenerating data",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "GitHub Actions workflow for release artifacts",
+      "description": "As a user of the library, I want pre-built data files attached to GitHub Releases so I can download them without running the xtask.",
+      "acceptanceCriteria": [
+        "GitHub Actions workflow runs cargo xtask generate on tagged releases",
+        "Bundles kana.fst, kanji.fst, romaji.fst, id.fst, entries.bin into jmdict-data.tar.gz",
+        "Attaches jmdict-data.tar.gz to the GitHub Release",
+        "Workflow file is at .github/workflows/release.yml",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Update README for new build system and usage",
+      "description": "As a new user, I want clear documentation on how to get started with jmdict-fast using either embedded or runtime-loaded modes.",
+      "acceptanceCriteria": [
+        "README covers quick start for both embedded and runtime modes with code examples",
+        "Documents cargo xtask generate usage",
+        "Documents one-liner download of pre-built data from GitHub Releases",
+        "Documents JMDICT_DATA env var and feature flags",
+        "Includes migration notes from the previous embedded-only API",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Create JmdictError enum replacing anyhow",
+      "description": "As an FFI consumer, I want typed errors with numeric codes so I can handle failures programmatically across the FFI boundary.",
+      "acceptanceCriteria": [
+        "New JmdictError enum in jmdict-fast/src/lib.rs (or src/error.rs)",
+        "Variants: DataNotFound, DataVersionMismatch { expected: u32, found: u32 }, DataCorrupted, InvalidQuery, IoError(std::io::Error), DeserializationError",
+        "Each variant has a stable numeric code via .code() -> u32 method",
+        "impl std::fmt::Display with human-readable messages",
+        "impl std::error::Error for JmdictError",
+        "All public methods updated to return Result<T, JmdictError> instead of anyhow::Result",
+        "anyhow is removed from jmdict-fast runtime dependencies (can remain in xtask)",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Add LookupResult and MatchType types",
+      "description": "As a developer, I want lookup methods to return structured results with metadata so I know how each result matched.",
+      "acceptanceCriteria": [
+        "New LookupResult struct: entry (Entry), match_type (MatchType), match_key (String), score (f64), deinflection (Option<DeinflectionInfo>)",
+        "MatchType enum: Exact, Prefix, Deinflected, Fuzzy",
+        "DeinflectionInfo struct: original_form (String), base_form (String), rules (Vec<String>)",
+        "Existing lookup_exact, lookup_partial, lookup_exact_with_deinflection return Vec<LookupResult> instead of Vec<Entry>",
+        "Results sorted by score descending (exact > prefix > deinflected)",
+        "All existing tests updated to work with new return type",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Implement QueryBuilder with mode and execute",
+      "description": "As a developer, I want dict.lookup(term) to return a QueryBuilder so I can chain mode selection and execute the query.",
+      "acceptanceCriteria": [
+        "dict.lookup(term) returns a QueryBuilder struct",
+        "QueryBuilder has .mode(MatchMode) method; MatchMode enum: Exact, Prefix, Deinflect, Fuzzy",
+        "Default mode is Exact",
+        "QueryBuilder has .execute() -> Result<Vec<LookupResult>, JmdictError>",
+        "Existing convenience methods (lookup_exact, lookup_partial, lookup_exact_with_deinflection) reimplemented using the builder internally",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Add filtering to QueryBuilder",
+      "description": "As a developer, I want to filter lookup results by commonality and part of speech via the query builder.",
+      "acceptanceCriteria": [
+        ".common_only(bool) filters to entries where any KanjiEntry or KanaEntry has common: true",
+        ".pos(&[&str]) filters to entries with matching part_of_speech values in any SenseEntry",
+        ".limit(usize) caps results after filtering and sorting",
+        "Chaining works: dict.lookup(term).mode(Prefix).common_only(true).pos(&[\"verb\"]).limit(10).execute()?",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Implement fuzzy search via Levenshtein automaton",
+      "description": "As a developer, I want to search with approximate matches using edit distance so misspelled terms still return results.",
+      "acceptanceCriteria": [
+        "MatchMode::Fuzzy triggers Levenshtein automaton search over all FSTs using fst::automaton::Levenshtein",
+        ".max_distance(n: u32) on QueryBuilder controls fuzzy tolerance (default: 2)",
+        "Fuzzy results have lower scores than exact matches",
+        "dict.lookup(term).mode(Fuzzy).max_distance(1).execute()? returns approximate matches",
+        "Performance: fuzzy lookup completes in under 50ms for common queries",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Add batch lookup API",
+      "description": "As an FFI consumer, I want to look up multiple terms in a single call to minimize FFI crossing overhead.",
+      "acceptanceCriteria": [
+        "dict.lookup_batch(&[\"猫\", \"犬\", \"食べる\"]) returns a BatchQueryBuilder",
+        "BatchQueryBuilder supports same filter methods as QueryBuilder (.common_only, .pos, .limit, .mode)",
+        ".execute() returns Vec<(String, Vec<LookupResult>)> — each input term paired with its results",
+        "Performance is at least as fast as N individual lookups (shared Dict reference, no repeated setup)",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add dictionary metadata API",
+      "description": "As a developer, I want to query dictionary metadata so I can display version info and diagnostics.",
+      "acceptanceCriteria": [
+        "dict.entry_count() -> usize returns total number of entries",
+        "dict.version() -> DataVersion returns format version and JMdict source version",
+        "DataVersion struct: format_version (u32), jmdict_version (String), generated_at (String)",
+        "Version info read from entries.bin header without deserializing entries",
+        "Xtask writes JMdict source version and generation timestamp into the header",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Add iterator-based results for large result sets",
+      "description": "As a developer, I want prefix/fuzzy lookups to return an iterator so large result sets don't allocate unnecessarily.",
+      "acceptanceCriteria": [
+        "QueryBuilder has .execute_iter() returning impl Iterator<Item = LookupResult>",
+        "Iterator lazily deserializes entries as consumed",
+        ".execute() still exists and collects into Vec",
+        "Memory usage for prefix query with 1000+ matches is proportional to consumed results, not total matches",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
