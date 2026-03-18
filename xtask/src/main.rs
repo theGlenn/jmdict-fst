@@ -54,7 +54,7 @@ fn generate(output_dir: &Path) -> anyhow::Result<()> {
     eprintln!("Parsing JSON...");
     let rdr = BufReader::new(cursor);
     let data: dict::JmdictData = serde_json::from_reader(rdr)?;
-    let entries = data.words;
+    let entries: Vec<dict::Entry> = data.words.into_iter().map(|w| w.into_entry()).collect();
     eprintln!("Parsed {} entries", entries.len());
 
     eprintln!("Extracting index keys...");
@@ -63,7 +63,6 @@ fn generate(output_dir: &Path) -> anyhow::Result<()> {
     let mut romaji_map = Vec::new();
     let mut id_mapping = Vec::new();
 
-    let mut trimmed_entries = Vec::new();
     for (seq_id, entry) in entries.iter().enumerate() {
         let id = seq_id as u64;
         id_mapping.push((entry.id.clone(), id));
@@ -75,19 +74,6 @@ fn generate(output_dir: &Path) -> anyhow::Result<()> {
             kana_map.push((k.text.clone(), id));
             romaji_map.push((deunicode(&k.text).to_lowercase(), id));
         }
-
-        // Create optimized entry by trimming unused fields
-        let mut trimmed = entry.clone();
-        for sense in &mut trimmed.sense {
-            sense.antonym.clear();
-            sense.info.clear();
-            sense.field.clear();
-            sense.dialect.clear();
-            sense.misc.clear();
-            sense.language_source.clear();
-            sense.related.clear();
-        }
-        trimmed_entries.push(trimmed);
     }
 
     eprintln!("Sorting and deduplicating...");
@@ -113,8 +99,8 @@ fn generate(output_dir: &Path) -> anyhow::Result<()> {
     write_fst(&output_dir.join("id.fst"), &id_mapping)?;
 
     eprintln!("Writing binary blob...");
-    eprintln!("Writing {} entries to binary blob", trimmed_entries.len());
-    write_blob(&output_dir.join("entries.bin"), &trimmed_entries)?;
+    eprintln!("Writing {} entries to binary blob", entries.len());
+    write_blob(&output_dir.join("entries.bin"), &entries)?;
 
     eprintln!("Done ✅ Output written to {}", output_dir.display());
     Ok(())
@@ -133,7 +119,7 @@ fn write_fst(path: &Path, entries: &[(String, u64)]) -> anyhow::Result<()> {
 /// Magic bytes at the start of entries.bin (must match jmdict-fast lib)
 const MAGIC: &[u8; 4] = b"JMDF";
 /// Binary format version (must match jmdict-fast lib FORMAT_VERSION)
-const FORMAT_VERSION: u32 = 1;
+const FORMAT_VERSION: u32 = 2;
 
 fn write_blob(path: &Path, entries: &[dict::Entry]) -> anyhow::Result<()> {
     use std::io::{BufWriter, Write};

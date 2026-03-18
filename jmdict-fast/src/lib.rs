@@ -10,7 +10,7 @@ use std::{borrow::Cow, fs::File, path::Path};
 const MAGIC: &[u8; 4] = b"JMDF";
 
 /// Binary format version for entries.bin
-pub const FORMAT_VERSION: u32 = 1;
+pub const FORMAT_VERSION: u32 = 2;
 
 /// Size of the entries.bin header (magic + version)
 const HEADER_SIZE: usize = 8;
@@ -40,6 +40,21 @@ pub struct KanaEntry {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct Xref {
+    pub term: String,
+    pub reading: Option<String>,
+    pub sense_index: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct LanguageSource {
+    pub lang: String,
+    pub full: bool,
+    pub wasei: bool,
+    pub text: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct SenseEntry {
     #[serde(rename = "partOfSpeech")]
     pub part_of_speech: Vec<String>,
@@ -47,14 +62,13 @@ pub struct SenseEntry {
     pub applies_to_kanji: Vec<String>,
     #[serde(rename = "appliesToKana")]
     pub applies_to_kana: Vec<String>,
-    pub related: Vec<serde_json::Value>,
-    pub antonym: Vec<serde_json::Value>,
+    pub related: Vec<Xref>,
+    pub antonym: Vec<Xref>,
     pub field: Vec<String>,
     pub dialect: Vec<String>,
     pub misc: Vec<String>,
     pub info: Vec<String>,
-    #[serde(rename = "languageSource")]
-    pub language_source: Vec<serde_json::Value>,
+    pub language_source: Vec<LanguageSource>,
     pub gloss: Vec<GlossEntry>,
 }
 

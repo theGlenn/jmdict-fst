@@ -965,7 +965,6 @@ dependencies = [
  "memmap2",
  "postcard",
  "serde",
- "serde_json",
  "simd-json",
  "unicode-normalization",
 ]
