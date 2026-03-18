@@ -11,6 +11,9 @@ categories = ["text-processing", "internationalization"]
 documentation = "https://docs.rs/jmdict-fast"
 homepage = "https://github.com/theGlenn/jmdict-fst"
 
+[features]
+embedded = []
+
 [dependencies]
 bunpo = "0.1.1"
 anyhow = "1.0.98"

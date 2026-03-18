@@ -3,6 +3,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 fn main() {
+    // Without the 'embedded' feature, build.rs is a no-op
+    if env::var("CARGO_FEATURE_EMBEDDED").is_err() {
+        return;
+    }
+
     // Re-run build script when dist/ contents change
     println!("cargo:rerun-if-changed=../dist");
 
@@ -28,8 +33,7 @@ fn main() {
         }
     }
 
-    // No data files found - emit a warning but don't fail the build
-    // This allows cargo check to pass without generated data
+    // Data files not found - emit a warning
     println!("cargo:warning=Data files not found. Run 'cargo xtask generate' first to generate dictionary data.");
 }
 

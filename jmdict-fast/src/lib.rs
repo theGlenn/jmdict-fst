@@ -4,7 +4,7 @@ use memmap2::Mmap;
 use postcard;
 use serde::Deserialize;
 use std::collections::BTreeSet;
-use std::{borrow::Cow, env, fs::File, path::Path};
+use std::{borrow::Cow, fs::File, path::Path};
 
 /// Magic bytes at the start of entries.bin
 const MAGIC: &[u8; 4] = b"JMDF";
@@ -143,6 +143,7 @@ impl<'a> Dict<'a> {
         }
     }
 
+    #[cfg(feature = "embedded")]
     pub fn load_embedded() -> Result<Self> {
         let entries = include_bytes!(concat!(env!("OUT_DIR"), "/entries.bin"));
         let kana_fst = include_bytes!(concat!(env!("OUT_DIR"), "/kana.fst"));
@@ -154,10 +155,31 @@ impl<'a> Dict<'a> {
     }
 
     pub fn load_default() -> Result<Self> {
-        Self::load_embedded().or_else(|_| {
-            let default_path = std::env::var("JMDICT_DATA").unwrap_or_else(|_| "dist".into());
-            Self::load(Path::new(&default_path))
-        })
+        #[cfg(feature = "embedded")]
+        {
+            if let Ok(dict) = Self::load_embedded() {
+                return Ok(dict);
+            }
+        }
+
+        // Try JMDICT_DATA env var first
+        if let Ok(data_path) = std::env::var("JMDICT_DATA") {
+            return Self::load(Path::new(&data_path));
+        }
+
+        // Try dist/ relative to current dir
+        let dist = Path::new("dist");
+        if dist.join("entries.bin").exists() {
+            return Self::load(dist);
+        }
+
+        // Try dist/ relative to workspace root (for tests run from subdirectory)
+        let workspace_dist = Path::new(env!("CARGO_MANIFEST_DIR")).join("../dist");
+        if workspace_dist.join("entries.bin").exists() {
+            return Self::load(&workspace_dist);
+        }
+
+        Self::load(dist)
     }
 
     /// Lookup a term exactly across kana, kanji, romaji
@@ -252,6 +274,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(feature = "embedded")]
     fn test_load_dict_embedded() {
         let dict = Dict::load_embedded().expect("load failed");
         assert!(dict.kana_fst.contains_key("ねこ"));
