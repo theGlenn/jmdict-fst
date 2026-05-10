@@ -145,7 +145,7 @@ Required repository secrets:
 | Secret | Purpose |
 |---|---|
 | `CARGO_REGISTRY_TOKEN` | Token from `cargo login` for publishing to crates.io. |
-| `RELEASE_PLZ_TOKEN` | Optional GitHub PAT (or App token) used so Release PRs can trigger downstream workflows like `ci.yml`. Falls back to `GITHUB_TOKEN` when unset, but PRs opened with the default token will not trigger CI. |
+| `RELEASE_PLZ_TOKEN` | GitHub PAT (or App token) with `pull-requests: write` and `contents: write`. Effectively required for the end-to-end flow above: GitHub does not fire downstream workflows from events created by the default `GITHUB_TOKEN`, so without this secret the Release PR will not run `ci.yml` and the published GitHub Release will not run `release.yml` (the dictionary-data tarball will not be attached automatically). The workflow falls back to `GITHUB_TOKEN` if unset, which is fine if you intend to attach the tarball by hand. |
 
 `xtask` is marked `publish = false` and excluded from `release-plz.toml`, so it never gets bumped or published.
 

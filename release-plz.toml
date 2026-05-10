@@ -9,9 +9,6 @@ changelog_update = true
 dependencies_update = true
 # Tag and create a GitHub release for each published crate.
 git_release_enable = true
-# Single PR for the whole workspace rather than one PR per crate.
-pr_branch_prefix = "release-plz/"
-
 # xtask is also marked `publish = false` in its Cargo.toml; this is a
 # belt-and-suspenders override so release-plz never tries to bump or
 # release it.
