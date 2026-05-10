@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Resolve data cache key
+        id: data
+        run: |
+          jmdict=$(grep -m1 'JMDICT_VERSION: &str' xtask/src/main.rs | sed -E 's/.*= *"([^"]*)".*/\1/')
+          fmt=$(grep -m1 'pub const FORMAT_VERSION' jmdict-fast/src/model.rs | sed -E 's/.*= ([0-9]+);$/\1/')
+          echo "key=jmdict-${jmdict}-fmt-${fmt}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache generated dictionary data
+        id: data-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            dist
+            .cache
+          key: ${{ runner.os }}-jmdict-data-${{ steps.data.outputs.key }}
+
+      - name: Generate dictionary data
+        if: steps.data-cache.outputs.cache-hit != 'true'
+        run: cargo xtask generate
+
+      - name: Check no-default-features build
+        run: cargo check -p jmdict-fast --no-default-features
+
+      - name: Run tests
+        run: cargo test --workspace
+        env:
+          JMDICT_DATA: ${{ github.workspace }}/dist
