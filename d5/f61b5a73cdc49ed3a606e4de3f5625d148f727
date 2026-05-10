@@ -1,0 +1,27 @@
+Cargo.lock
+  ai_agent 2414
+xtask/Cargo.toml
+  s_d473efd2e61b1f::t_df10046ba43e23 9
+xtask/src/main.rs
+  s_d473efd2e61b1f::t_90cedd01834571 4
+jmdict-fast/src/dict.rs
+  s_d473efd2e61b1f::t_716378690763c3 3
+jmdict-fast/src/model.rs
+  s_d473efd2e61b1f::t_6b8e5d06c89a12 43-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "d5f61b5a73cdc49ed3a606e4de3f5625d148f727",
+  "prompts": {},
+  "sessions": {
+    "s_d473efd2e61b1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7a78d2d-79ee-4456-bcb1-6835be87969e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
