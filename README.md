@@ -45,9 +45,12 @@ This downloads JMdict and produces FST indexes and a binary blob in `dist/`.
 Or download pre-built data from a [GitHub Release](https://github.com/theGlenn/jmdict-fst/releases):
 
 ```bash
-# Download and extract pre-built data
-curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data.tar.gz | tar xz -C dist/
+# Download and extract pre-built data (replace versions with the latest release's asset)
+mkdir -p dist
+curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt3.tar.gz | tar xz -C dist/
 ```
+
+> The release asset is named `jmdict-data-jmdict<JMDICT_VERSION>-fmt<FORMAT_VERSION>.tar.gz`. Check the [Releases page](https://github.com/theGlenn/jmdict-fst/releases) for current values.
 
 ### 2. Use the library
 

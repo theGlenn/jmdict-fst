@@ -31,8 +31,9 @@ Data files are **not** included in the crate. Generate them or download pre-buil
 cargo xtask generate
 
 # Option B: Download pre-built data from GitHub Releases
+# (asset name encodes JMdict + format versions; check Releases for current values)
 mkdir -p dist
-curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data.tar.gz | tar xz -C dist/
+curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt3.tar.gz | tar xz -C dist/
 ```
 
 This produces five files in `dist/`: `kana.fst`, `kanji.fst`, `romaji.fst`, `id.fst`, `entries.bin`.
