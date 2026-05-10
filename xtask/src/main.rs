@@ -30,6 +30,8 @@ enum Commands {
         #[arg(short, long, default_value = "dist")]
         output: PathBuf,
     },
+    /// Print JMdict source version and binary format version
+    Version,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -38,6 +40,10 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Generate { output } => {
             generate(&output)?;
+        }
+        Commands::Version => {
+            println!("jmdict_version={JMDICT_VERSION}");
+            println!("format_version={FORMAT_VERSION}");
         }
     }
 

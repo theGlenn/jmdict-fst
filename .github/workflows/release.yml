@@ -19,10 +19,16 @@ jobs:
       - name: Generate dictionary data
         run: cargo xtask generate
 
+      - name: Resolve artifact name
+        id: artifact
+        run: |
+          eval "$(cargo xtask version)"
+          echo "name=jmdict-data-jmdict${jmdict_version}-fmt${format_version}.tar.gz" >> "$GITHUB_OUTPUT"
+
       - name: Bundle data files
-        run: tar -czf jmdict-data.tar.gz -C dist kana.fst kanji.fst romaji.fst id.fst entries.bin
+        run: tar -czf "${{ steps.artifact.outputs.name }}" -C dist kana.fst kanji.fst romaji.fst id.fst entries.bin
 
       - name: Attach to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" jmdict-data.tar.gz --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.artifact.outputs.name }}" --clobber
