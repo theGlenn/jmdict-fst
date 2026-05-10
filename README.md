@@ -132,6 +132,23 @@ Previous versions always embedded dictionary data via `include_bytes!` in the bu
 |---------|-------------|
 | `embedded` | Bake dictionary data into the binary via `include_bytes!` |
 
+## Releases
+
+Releases are automated by [release-plz](https://release-plz.dev/). On every push to `main`, a "Release PR" is opened (or refreshed) that bumps versions in `Cargo.toml`, regenerates `CHANGELOG.md` from the conventional-commit history, and updates inter-crate dependencies. Merging that PR triggers the publish step, which:
+
+1. Pushes Git tags for each released crate.
+2. Runs `cargo publish` for each published crate in dependency order (`bunpo` → `jmdict-fast`).
+3. Creates the matching GitHub Release, which in turn fires `release.yml` to build and attach the dictionary-data tarball (`jmdict-data-jmdict<X>-fmt<Y>.tar.gz`).
+
+Required repository secrets:
+
+| Secret | Purpose |
+|---|---|
+| `CARGO_REGISTRY_TOKEN` | Token from `cargo login` for publishing to crates.io. |
+| `RELEASE_PLZ_TOKEN` | GitHub PAT (or App token) with `pull-requests: write` and `contents: write`. Effectively required for the end-to-end flow above: GitHub does not fire downstream workflows from events created by the default `GITHUB_TOKEN`, so without this secret the Release PR will not run `ci.yml` and the published GitHub Release will not run `release.yml` (the dictionary-data tarball will not be attached automatically). The workflow falls back to `GITHUB_TOKEN` if unset, which is fine if you intend to attach the tarball by hand. |
+
+`xtask` is marked `publish = false` and excluded from `release-plz.toml`, so it never gets bumped or published.
+
 ## License
 
 MIT License - see [LICENSE](./LICENSE)

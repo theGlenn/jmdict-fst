@@ -1,0 +1,69 @@
+name: release-plz
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # Opens or updates a "Release PR" that bumps versions and updates
+  # CHANGELOG.md based on conventional commits since the last release.
+  release-pr:
+    name: Release PR
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'theGlenn' }}
+    concurrency:
+      group: release-plz-pr
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run release-plz (release-pr)
+        # Pinned to v0.5.99 by commit SHA — this action has workspace write
+        # permissions and access to CARGO_REGISTRY_TOKEN, so we don't track a
+        # mutable major-version tag.
+        uses: release-plz/action@476794ede164c5137bfc3a1dc6ed3675275690f9
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  # Publishes bumped crates to crates.io and creates GitHub Releases.
+  # Runs in parallel with `release-pr` (the two commands serve independent
+  # purposes — `release-pr` opens the PR; `release` publishes when the
+  # merge of that PR lands on main). Coupling them via `needs:` would let
+  # a transient `release-pr` failure block the publish step on the very
+  # push that should trigger it.
+  release:
+    name: Publish
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'theGlenn' }}
+    concurrency:
+      group: release-plz-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run release-plz (release)
+        uses: release-plz/action@476794ede164c5137bfc3a1dc6ed3675275690f9
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

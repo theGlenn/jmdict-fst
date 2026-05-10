@@ -1,0 +1,17 @@
+# Configuration for release-plz (https://release-plz.dev/).
+# Defaults work for most cases; tweaks below are repo-specific.
+
+[workspace]
+# Group commit types in the generated CHANGELOG.md.
+changelog_update = true
+# Bump the inter-crate dependency requirement automatically when a
+# workspace member is released (e.g. jmdict-fast pinning bunpo).
+dependencies_update = true
+# Tag and create a GitHub release for each published crate.
+git_release_enable = true
+# xtask is also marked `publish = false` in its Cargo.toml; this is a
+# belt-and-suspenders override so release-plz never tries to bump or
+# release it.
+[[package]]
+name = "xtask"
+release = false
