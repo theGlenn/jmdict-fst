@@ -1,6 +1,6 @@
 use crate::error::JmdictError;
 use crate::model::{
-    DataVersion, DeinflectionInfo, Entry, LookupResult, MatchType, FORMAT_VERSION,
+    DataVersion, DeinflectionInfo, Entry, LookupResult, MatchType, FORMAT_VERSION, MAGIC,
 };
 use crate::query::{BatchQueryBuilder, QueryBuilder};
 use fst::{automaton::Levenshtein, automaton::Str, Automaton, IntoStreamer, Map, Streamer};
@@ -17,9 +17,6 @@ pub(crate) struct MatchCandidate {
     pub(crate) score: f64,
     pub(crate) deinflection: Option<DeinflectionInfo>,
 }
-
-/// Magic bytes at the start of entries.bin
-const MAGIC: &[u8; 4] = b"JMDF";
 
 /// Insert `cand` into `best` keyed by id, replacing the existing value only when
 /// `cand` has a strictly higher score. Used by prefix and fuzzy candidate
