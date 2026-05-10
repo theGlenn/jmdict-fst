@@ -40,7 +40,14 @@ pub struct LookupResult {
     pub deinflection: Option<DeinflectionInfo>,
 }
 
-/// Binary format version for entries.bin
+/// Magic bytes that prefix every `entries.bin`. The library uses these to
+/// distinguish a valid jmdict-fast data file from arbitrary input before
+/// touching the format version.
+pub const MAGIC: &[u8; 4] = b"JMDF";
+
+/// Binary format version for entries.bin. Bump whenever the on-disk layout or
+/// the serialized `Entry` struct changes — `Dict::load` rejects mismatched
+/// versions instead of attempting a deserialize that may silently succeed.
 pub const FORMAT_VERSION: u32 = 3;
 
 /// Dictionary data version information.

@@ -2411,6 +2411,7 @@ dependencies = [
  "deunicode",
  "flate2",
  "fst",
+ "jmdict-fast",
  "postcard",
  "reqwest",
  "serde",

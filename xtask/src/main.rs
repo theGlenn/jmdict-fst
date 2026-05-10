@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use deunicode::deunicode;
 use fst::MapBuilder;
+use jmdict_fast::{FORMAT_VERSION, MAGIC};
 use std::fs;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
@@ -127,11 +128,6 @@ fn write_fst(path: &Path, entries: &[(String, u64)]) -> anyhow::Result<()> {
     builder.finish()?;
     Ok(())
 }
-
-/// Magic bytes at the start of entries.bin (must match jmdict-fast lib)
-const MAGIC: &[u8; 4] = b"JMDF";
-/// Binary format version (must match jmdict-fast lib FORMAT_VERSION)
-const FORMAT_VERSION: u32 = 3;
 
 fn write_blob(
     path: &Path,
