@@ -1,0 +1,21 @@
+.github/workflows/release.yml
+  s_d473efd2e61b1f::t_ecbcbe0099e048 22-27,29,34
+xtask/src/main.rs
+  s_d473efd2e61b1f::t_4a3209c3c618c2 33-34,44-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "b69af15383e4e6f0e0ea160d5764b5aaf6938af4",
+  "prompts": {},
+  "sessions": {
+    "s_d473efd2e61b1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7a78d2d-79ee-4456-bcb1-6835be87969e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
