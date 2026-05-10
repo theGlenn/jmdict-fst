@@ -1,7 +1,7 @@
 use bunpo::deinflector::Deinflector;
 use jmdict_fast::Dict;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Japanese Lightweight Conjugation Reversal Demo ===\n");
 
     // Initialize the deinflector with default rules
@@ -44,13 +44,13 @@ fn main() -> anyhow::Result<()> {
 
                 if !valid_entries.is_empty() {
                     println!("  Valid dictionary entries found:");
-                    for entry in valid_entries.iter().take(3) {
+                    for lr in valid_entries.iter().take(3) {
                         // Limit to first 3
-                        if let Some(kanji) = entry.kanji.first() {
+                        if let Some(kanji) = lr.entry.kanji.first() {
                             println!(
                                 "    - {} ({})",
                                 kanji.text,
-                                entry
+                                lr.entry
                                     .kana
                                     .first()
                                     .map(|k| &k.text)

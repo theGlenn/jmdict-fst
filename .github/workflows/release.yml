@@ -1,0 +1,34 @@
+name: Release Data Artifacts
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Generate dictionary data
+        run: cargo xtask generate
+
+      - name: Resolve artifact name
+        id: artifact
+        run: |
+          eval "$(cargo xtask version)"
+          echo "name=jmdict-data-jmdict${jmdict_version}-fmt${format_version}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Bundle data files
+        run: tar -czf "${{ steps.artifact.outputs.name }}" -C dist kana.fst kanji.fst romaji.fst id.fst entries.bin
+
+      - name: Attach to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.artifact.outputs.name }}" --clobber

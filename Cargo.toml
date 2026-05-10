@@ -1,5 +1,5 @@
 [workspace]
-members = [ "bunpo","jmdict-fast"]
+members = ["bunpo", "jmdict-fast", "xtask"]
 resolver = "2"
 
 [workspace.package]
