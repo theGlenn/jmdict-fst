@@ -1,0 +1,25 @@
+.github/workflows/release.yml
+  s_d473efd2e61b1f::t_ec41217f5f552a 17
+.cargo/config.toml
+  s_d473efd2e61b1f::t_74e56c0dfbe04a 1-2
+README.md
+  s_d473efd2e61b1f::t_bd0426b31295b8 48-50,53
+jmdict-fast/README.md
+  s_d473efd2e61b1f::t_47abde3e032d4d 34,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "32e811026864086ff0a20d2eb67ae70d07ed76d6",
+  "prompts": {},
+  "sessions": {
+    "s_d473efd2e61b1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7a78d2d-79ee-4456-bcb1-6835be87969e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
