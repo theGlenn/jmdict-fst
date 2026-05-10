@@ -617,3 +617,45 @@ fn test_version() {
     assert!(!version.jmdict_version.is_empty(), "jmdict_version should not be empty");
     assert!(!version.generated_at.is_empty(), "generated_at should not be empty");
 }
+
+#[test]
+fn test_prefix_results_dedup_by_id_and_keep_best_score() {
+    let dict = create_test_dict();
+    // `たべる` is itself an exact key; under prefix mode it should surface as
+    // an Exact (score 1.0) match for its entry rather than being demoted to a
+    // generic Prefix score because some other key for the same id was visited
+    // first during FST traversal.
+    let results = dict
+        .lookup("たべる")
+        .mode(MatchMode::Prefix)
+        .execute()
+        .unwrap();
+
+    let mut ids: Vec<u64> = results.iter().map(|r| r.entry.id.parse().unwrap_or(0)).collect();
+    let pre_dedup_len = ids.len();
+    ids.sort();
+    ids.dedup();
+    assert_eq!(pre_dedup_len, ids.len(), "results must be deduplicated by entry id");
+
+    let taberu = results
+        .iter()
+        .find(|r| r.entry.kana.iter().any(|k| k.text == "たべる"))
+        .expect("expected to find an entry for たべる");
+    assert_eq!(taberu.match_type, MatchType::Exact);
+    assert_eq!(taberu.score, 1.0);
+}
+
+#[test]
+fn test_max_distance_is_clamped() {
+    let dict = create_test_dict();
+    // Asking for an absurd edit distance must not blow up the Levenshtein DFA;
+    // QueryBuilder clamps to MAX_FUZZY_DISTANCE before constructing it.
+    let results = dict
+        .lookup("ねこ")
+        .mode(MatchMode::Fuzzy)
+        .max_distance(100)
+        .limit(1)
+        .execute()
+        .expect("clamped fuzzy query should succeed");
+    assert!(!results.is_empty());
+}

@@ -5,7 +5,7 @@ use crate::model::{
 use crate::query::{BatchQueryBuilder, QueryBuilder};
 use fst::{automaton::Levenshtein, automaton::Str, Automaton, IntoStreamer, Map, Streamer};
 use memmap2::Mmap;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::{borrow::Cow, fs::File, path::Path};
 
 /// A raw match candidate from FST search, before entry deserialization.
@@ -20,6 +20,20 @@ pub(crate) struct MatchCandidate {
 
 /// Magic bytes at the start of entries.bin
 const MAGIC: &[u8; 4] = b"JMDF";
+
+/// Insert `cand` into `best` keyed by id, replacing the existing value only when
+/// `cand` has a strictly higher score. Used by prefix and fuzzy candidate
+/// collection so a later, better-quality hit (e.g. an `Exact` match in romaji)
+/// can supersede an earlier, lower-quality hit (e.g. a `Fuzzy` match in kana)
+/// for the same entry.
+fn upsert_better(best: &mut HashMap<u64, MatchCandidate>, cand: MatchCandidate) {
+    match best.get(&cand.id) {
+        Some(existing) if existing.score >= cand.score => {}
+        _ => {
+            best.insert(cand.id, cand);
+        }
+    }
+}
 
 pub struct Dict<'a> {
     pub entries_blob: Cow<'a, [u8]>,
@@ -302,43 +316,45 @@ impl<'a> Dict<'a> {
     }
 
     pub(crate) fn prefix_candidates(&self, prefix: &str) -> Vec<MatchCandidate> {
-        let mut id_keys: Vec<(u64, String)> = Vec::new();
-
         let automaton = Str::new(prefix).starts_with();
 
+        // Keep the highest-scored match per entry id. Walking the FSTs in order
+        // alone is not enough: a low-quality prefix hit in one index can be
+        // followed by an exact hit in another for the same id, and the better
+        // hit must win.
+        let mut best: HashMap<u64, MatchCandidate> = HashMap::new();
         for fst in [&self.kana_fst, &self.kanji_fst, &self.romaji_fst] {
             let mut stream = fst.search(&automaton).into_stream();
-            while let Some((key, val)) = stream.next() {
+            while let Some((key, id)) = stream.next() {
                 let key_str = String::from_utf8_lossy(key).to_string();
-                id_keys.push((val, key_str));
+                let is_exact = key_str == prefix;
+                let (match_type, score) = if is_exact {
+                    (MatchType::Exact, 1.0)
+                } else {
+                    (MatchType::Prefix, 0.5)
+                };
+                upsert_better(
+                    &mut best,
+                    MatchCandidate {
+                        id,
+                        key: key_str,
+                        match_type,
+                        score,
+                        deinflection: None,
+                    },
+                );
             }
         }
 
-        // Deduplicate by id, keeping first match key
-        let mut seen = BTreeSet::new();
-        let mut candidates = Vec::new();
-        for (id, key) in id_keys {
-            if !seen.insert(id) {
-                continue;
-            }
-            let is_exact = key == prefix;
-            let score = if is_exact { 1.0 } else { 0.5 };
-            let match_type = if is_exact {
-                MatchType::Exact
-            } else {
-                MatchType::Prefix
-            };
-            candidates.push(MatchCandidate {
-                id,
-                key,
-                match_type,
-                score,
-                deinflection: None,
-            });
-        }
-
-        // Sort by score descending
-        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        let mut candidates: Vec<MatchCandidate> = best.into_values().collect();
+        // Secondary key on `id` keeps the order deterministic for equal scores —
+        // `HashMap` iteration order varies between instances.
+        candidates.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap()
+                .then(a.id.cmp(&b.id))
+        });
         candidates
     }
 
@@ -350,43 +366,43 @@ impl<'a> Dict<'a> {
         let automaton = Levenshtein::new(term, max_distance)
             .map_err(|_| JmdictError::InvalidQuery)?;
 
-        let mut id_keys: Vec<(u64, String)> = Vec::new();
-
+        let mut best: HashMap<u64, MatchCandidate> = HashMap::new();
         for fst in [&self.kana_fst, &self.kanji_fst, &self.romaji_fst] {
             let mut stream = fst.search(&automaton).into_stream();
-            while let Some((key, val)) = stream.next() {
+            while let Some((key, id)) = stream.next() {
                 let key_str = String::from_utf8_lossy(key).to_string();
-                id_keys.push((val, key_str));
+                let is_exact = key_str == term;
+                let (match_type, score) = if is_exact {
+                    (MatchType::Exact, 1.0)
+                } else {
+                    let key_len = key_str.chars().count().max(1) as f64;
+                    let term_len = term.chars().count().max(1) as f64;
+                    let len_diff = (key_len - term_len).abs();
+                    let score = 0.5 - (len_diff / (key_len + term_len)) * 0.2;
+                    (MatchType::Fuzzy, score.max(0.1))
+                };
+                upsert_better(
+                    &mut best,
+                    MatchCandidate {
+                        id,
+                        key: key_str,
+                        match_type,
+                        score,
+                        deinflection: None,
+                    },
+                );
             }
         }
 
-        // Deduplicate by id
-        let mut seen = BTreeSet::new();
-        let mut candidates = Vec::new();
-        for (id, key) in id_keys {
-            if !seen.insert(id) {
-                continue;
-            }
-            let is_exact = key == term;
-            let (match_type, score) = if is_exact {
-                (MatchType::Exact, 1.0)
-            } else {
-                let key_len = key.chars().count().max(1) as f64;
-                let term_len = term.chars().count().max(1) as f64;
-                let len_diff = (key_len - term_len).abs();
-                let score = 0.5 - (len_diff / (key_len + term_len)) * 0.2;
-                (MatchType::Fuzzy, score.max(0.1))
-            };
-            candidates.push(MatchCandidate {
-                id,
-                key,
-                match_type,
-                score,
-                deinflection: None,
-            });
-        }
-
-        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        let mut candidates: Vec<MatchCandidate> = best.into_values().collect();
+        // Secondary key on `id` keeps the order deterministic for equal scores —
+        // `HashMap` iteration order varies between instances.
+        candidates.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap()
+                .then(a.id.cmp(&b.id))
+        });
         Ok(candidates)
     }
 
