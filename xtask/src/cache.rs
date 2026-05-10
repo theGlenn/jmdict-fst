@@ -53,7 +53,11 @@ fn get_project_cache_dir() -> Result<PathBuf> {
     }
 }
 
-/// Determines if a download is needed based on cache state
+/// Determines if a download is needed based on cache state.
+///
+/// When a version mismatch is detected, the stale cache and version files are
+/// deleted so a subsequent download failure cannot silently serve wrong-version
+/// bytes via the fallback in [`download_and_cache`].
 pub fn should_download(config: &CacheConfig) -> Result<bool> {
     let (cache_file, version_file) = config.get_cache_paths()?;
 
@@ -61,7 +65,9 @@ pub fn should_download(config: &CacheConfig) -> Result<bool> {
         match std::fs::read_to_string(&version_file) {
             Ok(cached_version) => {
                 if cached_version.trim() != config.current_version {
-                    eprintln!("🔄 Cache version mismatch, updating...");
+                    eprintln!("🔄 Cache version mismatch, removing stale cache...");
+                    let _ = std::fs::remove_file(&cache_file);
+                    let _ = std::fs::remove_file(&version_file);
                     Ok(true)
                 } else {
                     eprintln!("✅ Using cached file at {:?}", cache_file);
@@ -69,7 +75,9 @@ pub fn should_download(config: &CacheConfig) -> Result<bool> {
                 }
             }
             Err(_) => {
-                eprintln!("⚠️  Could not read version file, re-downloading...");
+                eprintln!("⚠️  Could not read version file, removing cache and re-downloading...");
+                let _ = std::fs::remove_file(&cache_file);
+                let _ = std::fs::remove_file(&version_file);
                 Ok(true)
             }
         }
@@ -132,12 +140,12 @@ where
 /// Generic function to load cached data with automatic download and verification
 pub fn load_cached_data<F>(config: CacheConfig, download_fn: F) -> Result<Cursor<Vec<u8>>>
 where
-    F: FnOnce() -> Result<Vec<u8>> + Clone,
+    F: FnOnce() -> Result<Vec<u8>>,
 {
-    if should_download(&config)? {
-        download_and_cache(&config, download_fn.clone())?;
-    }
-
-    let data = verify_and_fix_cache(&config, download_fn)?;
-    Ok(Cursor::new(data))
+    let bytes = if should_download(&config)? {
+        download_and_cache(&config, download_fn)?
+    } else {
+        verify_and_fix_cache(&config, download_fn)?
+    };
+    Ok(Cursor::new(bytes))
 }

@@ -30,15 +30,17 @@ pub struct Dict<'a> {
     deinflector: bunpo::deinflector::Deinflector,
     data_version: DataVersion,
     header_size: usize,
+    entry_count: u32,
 }
 
 struct HeaderInfo {
     data_version: DataVersion,
     /// Total bytes before entry_count (magic + version + metadata strings)
     header_size: usize,
+    entry_count: u32,
 }
 
-/// Parse the entries.bin header: magic, format version, jmdict_version, generated_at
+/// Parse the entries.bin header: magic, format version, jmdict_version, generated_at, entry count.
 fn parse_entries_header(data: &[u8]) -> Result<HeaderInfo, JmdictError> {
     if data.len() < 8 {
         return Err(JmdictError::DataCorrupted);
@@ -75,6 +77,12 @@ fn parse_entries_header(data: &[u8]) -> Result<HeaderInfo, JmdictError> {
     let generated_at = String::from_utf8_lossy(&data[pos..pos + gen_at_len]).to_string();
     pos += gen_at_len;
 
+    // Parse entry_count (u32) — validate presence so later reads don't panic.
+    if data.len() < pos + 4 {
+        return Err(JmdictError::DataCorrupted);
+    }
+    let entry_count = u32::from_le_bytes(data[pos..pos + 4].try_into().unwrap());
+
     Ok(HeaderInfo {
         data_version: DataVersion {
             format_version: version,
@@ -82,6 +90,7 @@ fn parse_entries_header(data: &[u8]) -> Result<HeaderInfo, JmdictError> {
             generated_at,
         },
         header_size: pos,
+        entry_count,
     })
 }
 
@@ -104,6 +113,7 @@ impl<'a> Dict<'a> {
             deinflector: bunpo::deinflector::Deinflector::new(),
             data_version: header.data_version,
             header_size: header.header_size,
+            entry_count: header.entry_count,
         })
     }
 
@@ -133,6 +143,7 @@ impl<'a> Dict<'a> {
                 deinflector: bunpo::deinflector::Deinflector::new(),
                 data_version: header.data_version,
                 header_size: header.header_size,
+                entry_count: header.entry_count,
             })
         }
     }
@@ -156,21 +167,24 @@ impl<'a> Dict<'a> {
             }
         }
 
-        // Try JMDICT_DATA env var first
         if let Ok(data_path) = std::env::var("JMDICT_DATA") {
             return Self::load(Path::new(&data_path));
         }
 
-        // Try dist/ relative to current dir
         let dist = Path::new("dist");
         if dist.join("entries.bin").exists() {
             return Self::load(dist);
         }
 
-        // Try dist/ relative to workspace root (for tests run from subdirectory)
-        let workspace_dist = Path::new(env!("CARGO_MANIFEST_DIR")).join("../dist");
-        if workspace_dist.join("entries.bin").exists() {
-            return Self::load(&workspace_dist);
+        // Test-only fallback: when running this crate's own tests, cargo sets CWD to
+        // jmdict-fast/, but `dist/` lives at the workspace root. CARGO_MANIFEST_DIR is
+        // resolved at compile time, so this path is only meaningful for in-repo builds.
+        #[cfg(test)]
+        {
+            let workspace_dist = Path::new(env!("CARGO_MANIFEST_DIR")).join("../dist");
+            if workspace_dist.join("entries.bin").exists() {
+                return Self::load(&workspace_dist);
+            }
         }
 
         Self::load(dist)
@@ -178,11 +192,7 @@ impl<'a> Dict<'a> {
 
     /// Returns the total number of entries in the dictionary.
     pub fn entry_count(&self) -> usize {
-        u32::from_le_bytes(
-            self.entries_blob[self.header_size..self.header_size + 4]
-                .try_into()
-                .unwrap(),
-        ) as usize
+        self.entry_count as usize
     }
 
     /// Returns data version information (format version, JMdict source version, generation timestamp).
@@ -408,12 +418,11 @@ impl<'a> Dict<'a> {
 
     // When reading offsets, start after header + entry_count (4 bytes)
     pub(crate) fn load_entry(&self, id: u64) -> Option<Entry> {
-        let hs = self.header_size;
-        let count =
-            u32::from_le_bytes(self.entries_blob[hs..hs + 4].try_into().ok()?) as usize;
+        let count = self.entry_count as usize;
         if id as usize >= count {
             return None;
         }
+        let hs = self.header_size;
         let offset_index = hs + 4 + (id as usize) * 8;
         let off = u32::from_le_bytes(
             self.entries_blob[offset_index..offset_index + 4]

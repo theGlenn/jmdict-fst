@@ -8,33 +8,46 @@ fn main() {
         return;
     }
 
-    // Re-run build script when dist/ contents change
-    println!("cargo:rerun-if-changed=../dist");
-
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_path = Path::new(&out_dir);
 
     let required_files = ["entries.bin", "kana.fst", "kanji.fst", "romaji.fst", "id.fst"];
 
-    // Check if generated files already exist in OUT_DIR - skip copy
     if required_files.iter().all(|f| out_path.join(f).exists()) {
         return;
     }
 
-    // Look for pre-generated files in dist/ directory (from cargo xtask generate)
-    if let Some(dist_dir) = find_dist_dir() {
-        if required_files.iter().all(|f| dist_dir.join(f).exists()) {
-            for file in &required_files {
-                fs::copy(dist_dir.join(file), out_path.join(file)).unwrap_or_else(|e| {
-                    panic!("Failed to copy {} from dist/ to OUT_DIR: {}", file, e);
-                });
-            }
-            return;
-        }
+    let dist_dir = find_dist_dir().unwrap_or_else(|| {
+        panic!(
+            "jmdict-fast: 'embedded' feature is enabled but no `dist/` directory was found. \
+             Run `cargo xtask generate` to produce data files, or download a release artifact."
+        )
+    });
+
+    let missing: Vec<&&str> = required_files
+        .iter()
+        .filter(|f| !dist_dir.join(f).exists())
+        .collect();
+    if !missing.is_empty() {
+        panic!(
+            "jmdict-fast: 'embedded' feature is enabled but {} is missing required files: {:?}. \
+             Run `cargo xtask generate` to regenerate.",
+            dist_dir.display(),
+            missing
+        );
     }
 
-    // Data files not found - emit a warning
-    println!("cargo:warning=Data files not found. Run 'cargo xtask generate' first to generate dictionary data.");
+    println!("cargo:rerun-if-changed={}", dist_dir.display());
+    for file in &required_files {
+        fs::copy(dist_dir.join(file), out_path.join(file)).unwrap_or_else(|e| {
+            panic!(
+                "Failed to copy {} from {} to OUT_DIR: {}",
+                file,
+                dist_dir.display(),
+                e
+            );
+        });
+    }
 }
 
 /// Find the dist/ directory by walking up from CARGO_MANIFEST_DIR to the workspace root

@@ -3,6 +3,12 @@ use crate::error::JmdictError;
 use crate::model::{LookupResult, MatchMode};
 use std::vec;
 
+/// Upper bound on the Levenshtein edit distance accepted by the fuzzy
+/// search builders. The `fst` Levenshtein automaton's DFA grows rapidly
+/// with distance; values above 4 are rarely useful and risk large
+/// allocations.
+pub const MAX_FUZZY_DISTANCE: u32 = 4;
+
 /// An iterator that lazily deserializes dictionary entries from pre-sorted match candidates.
 pub struct LookupResultIter<'d, 'a> {
     dict: &'d Dict<'a>,
@@ -104,8 +110,11 @@ impl<'d, 'a> QueryBuilder<'d, 'a> {
     }
 
     /// Set the maximum edit distance for fuzzy search (default: 2).
+    ///
+    /// Clamped to a maximum of [`MAX_FUZZY_DISTANCE`] to keep the Levenshtein DFA
+    /// from blowing up — the automaton's state space grows quickly with distance.
     pub fn max_distance(mut self, n: u32) -> Self {
-        self.max_distance = n;
+        self.max_distance = n.min(MAX_FUZZY_DISTANCE);
         self
     }
 
@@ -192,8 +201,10 @@ impl<'d, 'a> BatchQueryBuilder<'d, 'a> {
     }
 
     /// Set the maximum edit distance for fuzzy search (default: 2).
+    ///
+    /// Clamped to a maximum of [`MAX_FUZZY_DISTANCE`].
     pub fn max_distance(mut self, n: u32) -> Self {
-        self.max_distance = n;
+        self.max_distance = n.min(MAX_FUZZY_DISTANCE);
         self
     }
 
