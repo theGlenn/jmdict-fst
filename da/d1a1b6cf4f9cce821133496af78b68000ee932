@@ -1,0 +1,33 @@
+xtask/src/cache.rs
+  s_d473efd2e61b1f::t_cf60ba22655385 143,145-150
+  s_d473efd2e61b1f::t_2c8f38608d3351 56-60,68-70,78-80
+jmdict-fast/build.rs
+  s_d473efd2e61b1f::t_32da1994752275 20-37,40-50
+jmdict-fast/src/query.rs
+  s_d473efd2e61b1f::t_b9449cce345e7f 6-11
+  s_d473efd2e61b1f::t_faa239c51b4a6f 113-115,117
+  s_d473efd2e61b1f::t_cbcbf3bbe50549 204-205,207
+jmdict-fast/src/dict.rs
+  s_d473efd2e61b1f::t_3d6f871e10db8b 421,425
+  s_d473efd2e61b1f::t_00532625e3af29 33
+  s_d473efd2e61b1f::t_ba088cc1113d18 40,43,80-85,93
+  s_d473efd2e61b1f::t_87234b8f2d0cda 146
+  s_d473efd2e61b1f::t_4a928d33fbb32d 179-187,195
+  s_d473efd2e61b1f::t_cf0f88658637a2 116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "dad1a1b6cf4f9cce821133496af78b68000ee932",
+  "prompts": {},
+  "sessions": {
+    "s_d473efd2e61b1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7a78d2d-79ee-4456-bcb1-6835be87969e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
