@@ -1,0 +1,21 @@
+README.md
+  s_d473efd2e61b1f::t_5027c1b8f9cb26 148
+.github/workflows/release-plz.yml
+  s_d473efd2e61b1f::t_fd1ae5ee807901 31-34,41-46,51-53,64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "233590791e90934f6ed336cb2f0445b11220f13c",
+  "prompts": {},
+  "sessions": {
+    "s_d473efd2e61b1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7a78d2d-79ee-4456-bcb1-6835be87969e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
