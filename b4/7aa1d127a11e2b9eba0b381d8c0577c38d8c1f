@@ -1,0 +1,25 @@
+release-plz.toml
+  s_d473efd2e61b1f::t_2ceb5eda1bc4ef 1-20
+README.md
+  s_d473efd2e61b1f::t_282c5f7f4aaf67 135-151
+.github/workflows/release-plz.yml
+  s_d473efd2e61b1f::t_3735fdd6901c4c 1-60
+xtask/Cargo.toml
+  s_d473efd2e61b1f::t_3e1dbbd329631f 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "b47aa1d127a11e2b9eba0b381d8c0577c38d8c1f",
+  "prompts": {},
+  "sessions": {
+    "s_d473efd2e61b1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7a78d2d-79ee-4456-bcb1-6835be87969e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
