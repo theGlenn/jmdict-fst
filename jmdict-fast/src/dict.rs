@@ -1,6 +1,6 @@
 use crate::error::JmdictError;
 use crate::model::{
-    DataVersion, DeinflectionInfo, Entry, LookupResult, MatchType, FORMAT_VERSION, MAGIC,
+    DataVersion, DeinflectionInfo, Entry, LookupResult, MatchType, Xref, FORMAT_VERSION, MAGIC,
 };
 use crate::query::{BatchQueryBuilder, QueryBuilder};
 use fst::{automaton::Levenshtein, automaton::Str, Automaton, IntoStreamer, Map, Streamer};
@@ -64,6 +64,11 @@ pub struct Dict {
     pub kanji_fst: Map<DictStorage>,
     pub romaji_fst: Map<DictStorage>,
     pub id_fst: Map<DictStorage>,
+    /// Reverse index: English gloss token → offset into `gloss_postings`.
+    pub gloss_fst: Map<DictStorage>,
+    /// Posting lists keyed by `gloss_fst` offset. At each offset is `u32 count`
+    /// followed by `count × u64` entry ids (little-endian).
+    pub gloss_postings: DictStorage,
     deinflector: bunpo::deinflector::Deinflector,
     data_version: DataVersion,
     header_size: usize,
@@ -131,6 +136,27 @@ fn parse_entries_header(data: &[u8]) -> Result<HeaderInfo, JmdictError> {
     })
 }
 
+/// Binary search for `id` in a posting-list byte slice. The slice is treated
+/// as `N × 8` bytes of little-endian `u64`s sorted ascending — the layout
+/// `xtask` writes for `gloss_postings.bin`. Avoids decoding the whole list
+/// into a `Vec<u64>` for the common case where we only need membership.
+fn postings_contains(bytes: &[u8], id: u64) -> bool {
+    let n = bytes.len() / 8;
+    let mut lo = 0;
+    let mut hi = n;
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        let chunk = &bytes[mid * 8..mid * 8 + 8];
+        let v = u64::from_le_bytes(chunk.try_into().unwrap());
+        match v.cmp(&id) {
+            std::cmp::Ordering::Less => lo = mid + 1,
+            std::cmp::Ordering::Greater => hi = mid,
+            std::cmp::Ordering::Equal => return true,
+        }
+    }
+    false
+}
+
 fn mmap_storage(path: &Path) -> Result<DictStorage, JmdictError> {
     let file = File::open(path)?;
     // SAFETY: the Mmap is kept alive inside an Arc inside DictStorage. We
@@ -144,12 +170,15 @@ fn mmap_storage(path: &Path) -> Result<DictStorage, JmdictError> {
 impl Dict {
     /// Construct a `Dict` from `'static` in-memory slices, typically produced
     /// by `include_bytes!` for the `embedded` feature.
+    #[allow(clippy::too_many_arguments)]
     pub fn from_slices(
         entries: &'static [u8],
         kana_fst: &'static [u8],
         kanji_fst: &'static [u8],
         romaji_fst: &'static [u8],
         id_fst: &'static [u8],
+        gloss_fst: &'static [u8],
+        gloss_postings: &'static [u8],
     ) -> Result<Self, JmdictError> {
         Self::from_storage(
             DictStorage::Static(entries),
@@ -157,18 +186,23 @@ impl Dict {
             DictStorage::Static(kanji_fst),
             DictStorage::Static(romaji_fst),
             DictStorage::Static(id_fst),
+            DictStorage::Static(gloss_fst),
+            DictStorage::Static(gloss_postings),
         )
     }
 
     /// Construct a `Dict` from already-loaded [`DictStorage`] values. Use this
     /// to wire up custom storage (e.g. data downloaded into an in-memory
     /// buffer): build `DictStorage::Owned(Arc::new(bytes))` and pass it in.
+    #[allow(clippy::too_many_arguments)]
     pub fn from_storage(
         entries: DictStorage,
         kana_fst: DictStorage,
         kanji_fst: DictStorage,
         romaji_fst: DictStorage,
         id_fst: DictStorage,
+        gloss_fst: DictStorage,
+        gloss_postings: DictStorage,
     ) -> Result<Self, JmdictError> {
         let header = parse_entries_header(entries.as_ref())?;
         Ok(Self {
@@ -177,6 +211,8 @@ impl Dict {
             kanji_fst: Map::new(kanji_fst)?,
             romaji_fst: Map::new(romaji_fst)?,
             id_fst: Map::new(id_fst)?,
+            gloss_fst: Map::new(gloss_fst)?,
+            gloss_postings,
             deinflector: bunpo::deinflector::Deinflector::new(),
             data_version: header.data_version,
             header_size: header.header_size,
@@ -193,7 +229,9 @@ impl Dict {
         let kanji = mmap_storage(&base.join("kanji.fst"))?;
         let romaji = mmap_storage(&base.join("romaji.fst"))?;
         let id = mmap_storage(&base.join("id.fst"))?;
-        Self::from_storage(entries, kana, kanji, romaji, id)
+        let gloss = mmap_storage(&base.join("gloss.fst"))?;
+        let gloss_postings = mmap_storage(&base.join("gloss_postings.bin"))?;
+        Self::from_storage(entries, kana, kanji, romaji, id, gloss, gloss_postings)
     }
 
     #[cfg(feature = "embedded")]
@@ -203,8 +241,18 @@ impl Dict {
         let kanji_fst = include_bytes!(concat!(env!("OUT_DIR"), "/kanji.fst"));
         let romaji_fst = include_bytes!(concat!(env!("OUT_DIR"), "/romaji.fst"));
         let id_fst = include_bytes!(concat!(env!("OUT_DIR"), "/id.fst"));
+        let gloss_fst = include_bytes!(concat!(env!("OUT_DIR"), "/gloss.fst"));
+        let gloss_postings = include_bytes!(concat!(env!("OUT_DIR"), "/gloss_postings.bin"));
 
-        Self::from_slices(entries, kana_fst, kanji_fst, romaji_fst, id_fst)
+        Self::from_slices(
+            entries,
+            kana_fst,
+            kanji_fst,
+            romaji_fst,
+            id_fst,
+            gloss_fst,
+            gloss_postings,
+        )
     }
 
     pub fn load_default() -> Result<Self, JmdictError> {
@@ -450,6 +498,106 @@ impl Dict {
         BatchQueryBuilder::new(self, terms.iter().map(|s| s.to_string()).collect())
     }
 
+    /// Reverse lookup: find entries whose English glosses contain every token
+    /// in `query` (ANDed). Tokenization at query time mirrors the build-time
+    /// tokenizer: ASCII alphanumeric, lowercased, non-ASCII treated as a
+    /// separator.
+    ///
+    /// Results are ranked: rarer tokens (shorter posting lists) raise the
+    /// score; the rank cap is 0.6 so kanji/kana exact lookups still win in
+    /// mixed pipelines. Returns an empty `Vec` if the query has no usable
+    /// tokens or any token is absent.
+    pub fn lookup_gloss(&self, query: &str) -> Vec<LookupResult> {
+        // Mirror the build-time tokenizer in xtask: ASCII alphanumeric,
+        // lowercased, sorted and deduped. Sorting+dedup makes "cat cat" and
+        // "cat box" / "box cat" canonical so the match_key is stable and we
+        // don't read the same posting list twice.
+        let mut tokens: Vec<String> = query
+            .split(|c: char| !c.is_ascii_alphanumeric())
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_ascii_lowercase())
+            .collect();
+        tokens.sort();
+        tokens.dedup();
+        if tokens.is_empty() {
+            return Vec::new();
+        }
+
+        // For each token, take a *borrowed slice* into the mmap'd postings
+        // file. No allocation — the slice is already the array of u64 ids
+        // (sorted, deduped, little-endian) at the right offset.
+        let mut posting_lists: Vec<&[u8]> = Vec::with_capacity(tokens.len());
+        for tok in &tokens {
+            match self.gloss_postings_for(tok) {
+                Some(bytes) => posting_lists.push(bytes),
+                None => return Vec::new(),
+            }
+        }
+
+        // Intersect smallest-first to minimize work. Only the smallest list
+        // is iterated; the rest are binary-searched in place.
+        posting_lists.sort_by_key(|p| p.len());
+        let smallest = posting_lists[0];
+        let rest = &posting_lists[1..];
+
+        let intersected: Vec<u64> = smallest
+            .chunks_exact(8)
+            .map(|c| u64::from_le_bytes(c.try_into().unwrap()))
+            .filter(|id| rest.iter().all(|other| postings_contains(other, *id)))
+            .collect();
+
+        // Score: 0.6 ceiling; rarer tokens nudge the score up via 1 /
+        // posting-list-size (in entry counts, not bytes).
+        let total_entries: usize = posting_lists
+            .iter()
+            .map(|p| p.len() / 8)
+            .sum::<usize>()
+            .max(1);
+        let score = 0.6f64.min(0.3 + (tokens.len() as f64) / (total_entries as f64));
+
+        let key = tokens.join(" ");
+        intersected
+            .into_iter()
+            .filter_map(|id| {
+                self.load_entry(id).map(|entry| LookupResult {
+                    entry,
+                    match_type: MatchType::Gloss,
+                    match_key: key.clone(),
+                    score,
+                    deinflection: None,
+                })
+            })
+            .collect()
+    }
+
+    /// Borrow the posting bytes for a single gloss token. The returned slice
+    /// is `count × 8` bytes of little-endian `u64` entry ids, already sorted
+    /// and deduplicated by `xtask`. Returns `None` if the token is absent or
+    /// the postings file is truncated.
+    fn gloss_postings_for(&self, token: &str) -> Option<&[u8]> {
+        let offset = self.gloss_fst.get(token)? as usize;
+        let postings = self.gloss_postings.as_ref();
+        let count = u32::from_le_bytes(postings.get(offset..offset + 4)?.try_into().ok()?) as usize;
+        let start = offset + 4;
+        let end = start + count * 8;
+        postings.get(start..end)
+    }
+
+    /// Resolve a cross-reference ([`Xref`]) to dictionary entries.
+    ///
+    /// Looks up `xref.term` across kanji and kana indexes. If `xref.reading`
+    /// is set, results are further restricted to entries whose kana matches
+    /// that reading — this disambiguates homographs like 生 (なま / せい).
+    /// `xref.sense_index` is preserved on the caller side: this returns whole
+    /// entries, since the surrounding `LookupResult` is per-entry.
+    pub fn resolve_xref(&self, xref: &Xref) -> Vec<LookupResult> {
+        let mut results = self.lookup_exact(&xref.term);
+        if let Some(reading) = xref.reading.as_deref() {
+            results.retain(|r| r.entry.kana.iter().any(|k| k.text == reading));
+        }
+        results
+    }
+
     /// Lookup an entry by its JMdict ID (the string `entry.id`, e.g. `"1467640"`).
     ///
     /// Returns `None` if no entry with that ID exists.
@@ -551,6 +699,32 @@ impl<'d> Iterator for EntryIter<'d> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn pack(ids: &[u64]) -> Vec<u8> {
+        let mut v = Vec::with_capacity(ids.len() * 8);
+        for id in ids {
+            v.extend_from_slice(&id.to_le_bytes());
+        }
+        v
+    }
+
+    #[test]
+    fn postings_contains_hits_and_misses() {
+        let bytes = pack(&[1, 5, 10, 100, 1_000_000]);
+        assert!(postings_contains(&bytes, 1));
+        assert!(postings_contains(&bytes, 10));
+        assert!(postings_contains(&bytes, 1_000_000));
+        assert!(!postings_contains(&bytes, 0));
+        assert!(!postings_contains(&bytes, 2));
+        assert!(!postings_contains(&bytes, 99));
+        assert!(!postings_contains(&bytes, 1_000_001));
+    }
+
+    #[test]
+    fn postings_contains_empty_slice() {
+        assert!(!postings_contains(&[], 0));
+        assert!(!postings_contains(&[], 42));
+    }
 
     #[test]
     fn dict_storage_as_ref_owned() {

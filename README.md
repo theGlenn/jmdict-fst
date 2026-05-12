@@ -50,7 +50,7 @@ mkdir -p dist
 curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt3.tar.gz | tar xz -C dist/
 ```
 
-> The release asset is named `jmdict-data-jmdict<JMDICT_VERSION>-fmt<FORMAT_VERSION>.tar.gz`. Check the [Releases page](https://github.com/theGlenn/jmdict-fst/releases) for current values.
+> The release asset is named `jmdict-data-jmdict<JMDICT_VERSION>-fmt<FORMAT_VERSION>.tar.gz`. The current format version is **4**, which includes the English-gloss reverse-lookup index (`gloss.fst` + `gloss_postings.bin`). Check the [Releases page](https://github.com/theGlenn/jmdict-fst/releases) for current values.
 
 ### 2. Use the library
 
