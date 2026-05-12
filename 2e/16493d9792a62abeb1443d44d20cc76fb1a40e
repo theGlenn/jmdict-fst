@@ -1,0 +1,21 @@
+jmdict-fast/src/dict.rs
+  s_93695b0e6f8b2f::t_63a881b3b94f9a 139-159
+  s_93695b0e6f8b2f::t_606145dfdb56e9 703-728
+  s_93695b0e6f8b2f::t_5e19aca08e6c63 511-515,520-521,526-529,532,537-538,540,544-546,550-556,573-577,583
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "2e16493d9792a62abeb1443d44d20cc76fb1a40e",
+  "prompts": {},
+  "sessions": {
+    "s_93695b0e6f8b2f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "03076c23-c9e6-434b-be39-e6033b49be4f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
