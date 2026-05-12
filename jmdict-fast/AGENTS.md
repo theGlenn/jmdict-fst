@@ -4,28 +4,36 @@ Crate-level guidance for AI coding agents. See the [root AGENTS.md](../AGENTS.md
 
 ## What this crate is
 
-FST-backed Japanese dictionary engine. Three FSTs (kana, kanji, romaji) map keys → entry id; entry bodies live in `entries.bin` and are deserialized lazily on hit. There is also an `id.fst` for lookup by entry id.
+FST-backed Japanese dictionary engine. Three FSTs (kana, kanji, romaji) map keys → entry id; `id.fst` maps the JMdict sequence id (a string like `"1000000"`) to that same internal id and powers `Dict::lookup_by_id`. Entry bodies live in `entries.bin` and are deserialized lazily on hit.
 
-Public surface is small and intentional — see `src/lib.rs`:
+Public surface (see `src/lib.rs`):
 
 ```rust
-pub use dict::Dict;
+pub use dict::{Dict, DictStorage, EntryIter};
 pub use error::JmdictError;
 pub use model::*;
-pub use query::{BatchQueryBuilder, LookupResultIter, QueryBuilder};
+pub use query::{BatchQueryBuilder, LookupResultIter, MAX_FUZZY_DISTANCE, QueryBuilder};
 ```
 
-`Dict` exposes both convenience methods (`lookup_exact`, `lookup_partial`, `lookup_exact_with_deinflection`) and a builder (`dict.lookup(term).mode(...).execute()`). The convenience methods are thin wrappers — keep them in sync with the builder if you change semantics.
+`Dict` exposes:
+
+- **Search**: `lookup_exact`, `lookup_partial`, `lookup_exact_with_deinflection`, plus the fluent `dict.lookup(term).mode(...).execute()` builder and `lookup_batch`.
+- **Direct access**: `lookup_by_id(jmdict_id)` (string seq id via `id.fst`), `get(seq_id)` (internal id → `Entry`), `iter_entries()` for browsing all entries.
+- **Metadata**: `entry_count`, `version`.
+
+`Entry` ships with convenience helpers in `model.rs`: `primary_kanji`, `primary_kana`, `headword`, `is_common`, `glosses(lang)`, `parts_of_speech`. Prefer these over re-implementing the same projections at call sites.
+
+The convenience search methods are thin wrappers over the builder — keep them in sync if you change semantics.
 
 ## Module map
 
 | Module | Role |
 |---|---|
-| `dict.rs` | `Dict` struct, file/embedded loading, FST candidate collection, entry materialization. |
-| `model.rs` | `Entry`, `LookupResult`, `MatchType`, `MatchMode`, `DataVersion`, plus `MAGIC` / `FORMAT_VERSION` constants. |
-| `query.rs` | `QueryBuilder` / `BatchQueryBuilder` — the public fluent API. |
+| `dict.rs` | `Dict`, `DictStorage`, `EntryIter`, file/embedded loading, FST candidate collection, entry materialization. Inline `#[cfg(test)]` unit tests live here. |
+| `model.rs` | `Entry` and its helpers, `LookupResult`, `MatchType`, `MatchMode`, `DataVersion`, plus `MAGIC` / `FORMAT_VERSION` constants. Inline unit tests here too. |
+| `query.rs` | `QueryBuilder` / `BatchQueryBuilder` / `LookupResultIter` — the public fluent API. Also exports `MAX_FUZZY_DISTANCE`. |
 | `error.rs` | `JmdictError`. |
-| `tests.rs` | Integration-style tests that load real data via `Dict::load_default()`. |
+| `tests/lookup.rs` | Integration tests that load real data via `Dict::load_default()` (require `dist/`). |
 | `build.rs` | No-op unless the `embedded` feature is on; then copies `dist/*` into `OUT_DIR`. |
 
 ## Commands
@@ -35,11 +43,12 @@ pub use query::{BatchQueryBuilder, LookupResultIter, QueryBuilder};
 | Build (default features, runtime-loaded) | `cargo build -p jmdict-fast` |
 | Build with embedded data | `cargo build -p jmdict-fast --features embedded` (needs `dist/`) |
 | No-default-features check (CI runs this) | `cargo check -p jmdict-fast --no-default-features` |
-| Tests | `cargo test -p jmdict-fast` (needs `dist/` — run `cargo xtask generate` first) |
+| Unit tests (no data needed) | `cargo test -p jmdict-fast --lib` |
+| All tests incl. integration | `cargo test -p jmdict-fast` (integration tests in `tests/lookup.rs` need `dist/` — run `cargo xtask generate` first) |
 | Benches | `cargo bench -p jmdict-fast` (`lookup_word`, `minimal`) |
 | Examples | `cargo run -p jmdict-fast --example <name>` |
 
-Tests call `Dict::load_default()`, which falls back to `../dist` via `CARGO_MANIFEST_DIR` in `#[cfg(test)]` builds. Don't break that fallback — workspace-relative `dist/` is how the local dev loop works.
+The library's inline unit tests (under `#[cfg(test)] mod tests` in `dict.rs` / `model.rs`) do **not** require `dist/` — they cover format/parse/helper logic. The integration tests in `tests/lookup.rs` do, and they call `Dict::load_default()`, which falls back to `../dist` via `CARGO_MANIFEST_DIR` in `#[cfg(test)]` builds. Don't break that fallback — workspace-relative `dist/` is how the local dev loop works.
 
 ## On-disk format invariants
 
@@ -98,8 +107,8 @@ This crate already pulls in `fst`, `memmap2`, `postcard`, `serde`, `simd-json`, 
 - Don't hand-edit `CHANGELOG.md` or the crate `version` — `release-plz` handles both from conventional commits.
 - Don't add `pub` to anything in `dict.rs` marked `pub(crate)` (e.g. `MatchCandidate`, the `*_candidates` helpers) without a deliberate API decision — they are internal scaffolding for `QueryBuilder`.
 - Don't change `JmdictError` variants in a non-additive way without bumping the crate version appropriately (semver).
-- Don't make `Dict` `Send`/`Sync` assumptions without checking — `Dict` holds `Cow<[u8]>` over either mmap-copied or borrowed bytes; the public type is `Dict<'a>` for a reason.
+- `Dict` no longer has a lifetime parameter. It owns its bytes through `DictStorage` (`Mmap(Arc<Mmap>)` / `Static(&'static [u8])` / `Owned(Arc<Vec<u8>>)`). `Dict::load` is real zero-copy mmap now — do **not** reintroduce the old `Mmap::map(...)[..].to_vec()` pattern. `from_slices` takes `&'static [u8]` (use it for `include_bytes!`); for anything else, build a `DictStorage` and use `from_storage`.
 
 ## When in doubt
 
-Search the existing tests (`src/tests.rs`) for the behavior you're touching — the integration tests document the intended contract for ranking, deinflection, and the version-mismatch error path.
+Search the existing tests for the behavior you're touching — inline `#[cfg(test)]` modules in `dict.rs` / `model.rs` cover unit-level invariants, and `tests/lookup.rs` documents the intended contract for ranking, deinflection, id-based lookup, and the version-mismatch error path.
