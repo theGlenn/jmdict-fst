@@ -859,6 +859,99 @@ fn test_resolve_xref_walks_real_related_link() {
     );
 }
 
+// --- Gloss reverse lookup ---------------------------------------------------
+
+#[test]
+fn test_lookup_gloss_single_token_finds_entry() {
+    let dict = create_test_dict();
+    // "cat" → among other animal/feline entries, 猫 must be in there.
+    let results = dict.lookup_gloss("cat");
+    assert!(!results.is_empty(), "lookup_gloss('cat') returned nothing");
+    assert!(
+        results.iter().any(|r| r.entry.kanji.iter().any(|k| k.text == "猫")),
+        "expected 猫 in cat results"
+    );
+    for r in &results {
+        assert_eq!(r.match_type, MatchType::Gloss);
+        assert!(r.score > 0.0 && r.score <= 0.6);
+        assert_eq!(r.match_key, "cat");
+        assert!(r.deinflection.is_none());
+    }
+}
+
+#[test]
+fn test_lookup_gloss_multi_token_ands_per_entry() {
+    let dict = create_test_dict();
+    // "to eat" → must include 食べる. AND is at the *entry* level: both
+    // tokens must appear somewhere across the entry's English glosses, not
+    // necessarily in the same gloss.
+    let results = dict.lookup_gloss("to eat");
+    assert!(!results.is_empty(), "lookup_gloss('to eat') returned nothing");
+    assert!(
+        results.iter().any(|r| r.entry.kanji.iter().any(|k| k.text == "食べる")),
+        "expected 食べる in 'to eat' results"
+    );
+    for r in &results {
+        let all_eng_tokens: std::collections::HashSet<String> = r
+            .entry
+            .sense
+            .iter()
+            .flat_map(|s| s.gloss.iter())
+            .filter(|g| g.lang == "eng")
+            .flat_map(|g| {
+                g.text
+                    .to_ascii_lowercase()
+                    .split(|c: char| !c.is_ascii_alphanumeric())
+                    .filter(|s| !s.is_empty())
+                    .map(String::from)
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        assert!(
+            all_eng_tokens.contains("to") && all_eng_tokens.contains("eat"),
+            "entry {} kept in 'to eat' results but is missing one of the tokens",
+            r.entry.id
+        );
+    }
+}
+
+#[test]
+fn test_lookup_gloss_missing_token_returns_empty() {
+    let dict = create_test_dict();
+    // The AND semantics mean any unknown token kills the whole result set.
+    let results = dict.lookup_gloss("cat zzzqqqxyz");
+    assert!(results.is_empty());
+}
+
+#[test]
+fn test_lookup_gloss_empty_or_punctuation_only() {
+    let dict = create_test_dict();
+    assert!(dict.lookup_gloss("").is_empty());
+    assert!(dict.lookup_gloss("   ").is_empty());
+    assert!(dict.lookup_gloss("???!").is_empty());
+}
+
+#[test]
+fn test_lookup_gloss_case_insensitive_and_punctuation_tolerant() {
+    let dict = create_test_dict();
+    let a = dict.lookup_gloss("CAT");
+    let b = dict.lookup_gloss("cat");
+    let c = dict.lookup_gloss(".cat,");
+    assert_eq!(a.len(), b.len());
+    assert_eq!(b.len(), c.len());
+}
+
+#[test]
+fn test_lookup_gloss_score_capped() {
+    let dict = create_test_dict();
+    // A super-common token like "the" yields long posting lists; the score
+    // formula must not blow past 0.6 even when the token is everywhere.
+    let results = dict.lookup_gloss("the");
+    for r in &results {
+        assert!(r.score <= 0.6, "gloss score should be capped at 0.6");
+    }
+}
+
 #[test]
 fn test_entry_headword_falls_back_to_kana_when_no_kanji() {
     let dict = create_test_dict();
