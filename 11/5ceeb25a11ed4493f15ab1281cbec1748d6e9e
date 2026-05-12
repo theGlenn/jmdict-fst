@@ -1,0 +1,38 @@
+README.md
+  s_93695b0e6f8b2f::t_c4bcdfa523db34 53
+jmdict-fast/src/dict.rs
+  s_93695b0e6f8b2f::t_a82d87dbc7bce5 67-71
+  s_93695b0e6f8b2f::t_ce3bf731ec55df 152,159-160,168-169,176,183-184,193-194,211-213,223-234
+  s_93695b0e6f8b2f::t_754a2f433d14ed 480-513,518-559
+  s_93695b0e6f8b2f::t_6588457c37d5ce 514-517
+jmdict-fast/src/model.rs
+  s_93695b0e6f8b2f::t_91deecf1f2b27e 10-11
+  s_93695b0e6f8b2f::t_193b0028c5a319 50-59
+jmdict-fast/build.rs
+  s_93695b0e6f8b2f::t_5e339fcbcdf8b0 14-22
+jmdict-fast/README.md
+  s_93695b0e6f8b2f::t_297b346c89df9b 185-187
+xtask/src/main.rs
+  s_93695b0e6f8b2f::t_7ac05bcf7aebe8 5
+  s_93695b0e6f8b2f::t_112e0054414d21 109-115
+  s_93695b0e6f8b2f::t_596a9d6d2a278d 130-193
+jmdict-fast/tests/lookup.rs
+  s_93695b0e6f8b2f::t_2742badb785361 862-882,884,888-894,908,910,913-954
+  s_93695b0e6f8b2f::t_c17be94346908b 883,885-887,895-907,909,911-912
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "115ceeb25a11ed4493f15ab1281cbec1748d6e9e",
+  "prompts": {},
+  "sessions": {
+    "s_93695b0e6f8b2f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "03076c23-c9e6-434b-be39-e6033b49be4f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
