@@ -1,0 +1,26 @@
+jmdict-fast/src/dict.rs
+  s_93695b0e6f8b2f::t_381a7c096a826f 453-467
+  s_93695b0e6f8b2f::t_71b5cffd5724e9 3
+jmdict-fast/src/query.rs
+  s_93695b0e6f8b2f::t_e560929790c47c 312-342
+  s_93695b0e6f8b2f::t_4f649bea7590ca 12-22,29-31,46-50,58-59,62-72,74,98-100,113-115,139-159,197-199,213-215,228-230,254-271,289-291,300-302
+jmdict-fast/tests/lookup.rs
+  s_93695b0e6f8b2f::t_45be658d441db8 693-697,701,703-706,708-711,713-861
+  s_93695b0e6f8b2f::t_55acef9e464dd9 698-700,702,707,712
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "b0e157b94554359c06a60ea5e5063216e9405c39",
+  "prompts": {},
+  "sessions": {
+    "s_93695b0e6f8b2f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "03076c23-c9e6-434b-be39-e6033b49be4f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
