@@ -690,6 +690,175 @@ fn test_entry_accessors_against_real_data() {
     assert!(pos.iter().any(|p| p.contains("n")));
 }
 
+// --- Sense filters (misc/field/dialect) ------------------------------------
+
+#[test]
+fn test_query_builder_misc_filter_uk() {
+    let dict = create_test_dict();
+    // "uk" = usually written in kana. Use a narrow prefix so the unfiltered
+    // result count fits below the limit, otherwise both queries hit the
+    // ceiling and the reduction assertion is meaningless.
+    let all = dict
+        .lookup("あいう")
+        .mode(MatchMode::Prefix)
+        .execute()
+        .unwrap();
+    let uk_only = dict
+        .lookup("あいう")
+        .mode(MatchMode::Prefix)
+        .misc(&["uk"])
+        .execute()
+        .unwrap();
+    assert!(uk_only.len() <= all.len(), "uk filter must not add results");
+    for r in &uk_only {
+        assert!(
+            r.entry.sense.iter().any(|s| s.misc.iter().any(|m| m == "uk")),
+            "entry {} kept under uk filter but no sense has misc=uk",
+            r.entry.id
+        );
+    }
+}
+
+#[test]
+fn test_query_builder_field_filter() {
+    let dict = create_test_dict();
+    // A prefix sweep over hiragana "い" with field=med should yield only
+    // medicine-tagged entries.
+    let med = dict
+        .lookup("い")
+        .mode(MatchMode::Prefix)
+        .field(&["med"])
+        .limit(50)
+        .execute()
+        .unwrap();
+    for r in &med {
+        assert!(
+            r.entry.sense.iter().any(|s| s.field.iter().any(|f| f == "med")),
+            "entry {} kept under field=med but no sense has field=med",
+            r.entry.id
+        );
+    }
+}
+
+#[test]
+fn test_query_builder_dialect_filter() {
+    let dict = create_test_dict();
+    // Kansai-ben filter — sparse but should yield only ksb-tagged entries.
+    let ksb = dict
+        .lookup("や")
+        .mode(MatchMode::Prefix)
+        .dialect(&["ksb"])
+        .limit(20)
+        .execute()
+        .unwrap();
+    for r in &ksb {
+        assert!(
+            r.entry.sense.iter().any(|s| s.dialect.iter().any(|d| d == "ksb")),
+            "entry {} kept under dialect=ksb but no sense has dialect=ksb",
+            r.entry.id
+        );
+    }
+}
+
+#[test]
+fn test_query_builder_combined_pos_and_misc_per_sense_conjunction() {
+    let dict = create_test_dict();
+    // Verbs that are usually written in kana — every result must have a
+    // SINGLE sense that is both a verb AND tagged "uk".
+    let results = dict
+        .lookup("い")
+        .mode(MatchMode::Prefix)
+        .pos(&["v"])
+        .misc(&["uk"])
+        .limit(30)
+        .execute()
+        .unwrap();
+    for r in &results {
+        let any_sense_both = r.entry.sense.iter().any(|s| {
+            s.part_of_speech.iter().any(|p| p.contains("v"))
+                && s.misc.iter().any(|m| m == "uk")
+        });
+        assert!(
+            any_sense_both,
+            "entry {} kept under pos=v+misc=uk but no single sense has both",
+            r.entry.id
+        );
+    }
+}
+
+// --- Xref resolution --------------------------------------------------------
+
+#[test]
+fn test_resolve_xref_term_only() {
+    let dict = create_test_dict();
+    let xref = Xref {
+        term: "猫".to_string(),
+        reading: None,
+        sense_index: None,
+    };
+    let results = dict.resolve_xref(&xref);
+    assert!(!results.is_empty());
+    assert!(results.iter().any(|r| r.entry.kanji[0].text == "猫"));
+}
+
+#[test]
+fn test_resolve_xref_with_reading_disambiguates() {
+    let dict = create_test_dict();
+    // 生 has multiple readings (なま, せい, etc.). With reading=なま we keep
+    // only the matching entry.
+    let xref = Xref {
+        term: "生".to_string(),
+        reading: Some("なま".to_string()),
+        sense_index: None,
+    };
+    let results = dict.resolve_xref(&xref);
+    for r in &results {
+        assert!(
+            r.entry.kana.iter().any(|k| k.text == "なま"),
+            "entry {} kept under reading filter but no kana matches なま",
+            r.entry.id
+        );
+    }
+}
+
+#[test]
+fn test_resolve_xref_missing_term() {
+    let dict = create_test_dict();
+    let xref = Xref {
+        term: "存在しない用語".to_string(),
+        reading: None,
+        sense_index: None,
+    };
+    assert!(dict.resolve_xref(&xref).is_empty());
+}
+
+#[test]
+fn test_resolve_xref_walks_real_related_link() {
+    let dict = create_test_dict();
+    // Find any entry with a non-empty `related` xref, then resolve it.
+    // Picks the first such link encountered during a bounded iter.
+    let (entry, xref) = dict
+        .iter_entries()
+        .take(5_000)
+        .find_map(|e| {
+            e.sense
+                .iter()
+                .flat_map(|s| s.related.iter())
+                .find(|x| !x.term.is_empty())
+                .cloned()
+                .map(|x| (e, x))
+        })
+        .expect("expected some entry in the first 5k with a related xref");
+
+    let resolved = dict.resolve_xref(&xref);
+    assert!(
+        !resolved.is_empty(),
+        "related xref {:?} from entry {} should resolve to at least one entry",
+        xref,
+        entry.id
+    );
+}
+
 #[test]
 fn test_entry_headword_falls_back_to_kana_when_no_kanji() {
     let dict = create_test_dict();

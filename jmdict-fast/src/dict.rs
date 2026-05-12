@@ -1,6 +1,6 @@
 use crate::error::JmdictError;
 use crate::model::{
-    DataVersion, DeinflectionInfo, Entry, LookupResult, MatchType, FORMAT_VERSION, MAGIC,
+    DataVersion, DeinflectionInfo, Entry, LookupResult, MatchType, Xref, FORMAT_VERSION, MAGIC,
 };
 use crate::query::{BatchQueryBuilder, QueryBuilder};
 use fst::{automaton::Levenshtein, automaton::Str, Automaton, IntoStreamer, Map, Streamer};
@@ -448,6 +448,21 @@ impl Dict {
     /// Create a batch query builder for multiple terms.
     pub fn lookup_batch(&self, terms: &[&str]) -> BatchQueryBuilder<'_> {
         BatchQueryBuilder::new(self, terms.iter().map(|s| s.to_string()).collect())
+    }
+
+    /// Resolve a cross-reference ([`Xref`]) to dictionary entries.
+    ///
+    /// Looks up `xref.term` across kanji and kana indexes. If `xref.reading`
+    /// is set, results are further restricted to entries whose kana matches
+    /// that reading — this disambiguates homographs like 生 (なま / せい).
+    /// `xref.sense_index` is preserved on the caller side: this returns whole
+    /// entries, since the surrounding `LookupResult` is per-entry.
+    pub fn resolve_xref(&self, xref: &Xref) -> Vec<LookupResult> {
+        let mut results = self.lookup_exact(&xref.term);
+        if let Some(reading) = xref.reading.as_deref() {
+            results.retain(|r| r.entry.kana.iter().any(|k| k.text == reading));
+        }
+        results
     }
 
     /// Lookup an entry by its JMdict ID (the string `entry.id`, e.g. `"1467640"`).
