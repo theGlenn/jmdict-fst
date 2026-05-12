@@ -1,0 +1,19 @@
+jmdict-fast/AGENTS.md
+  s_6de394553ec597::t_88a8a0e541b5fc 1-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "32cd08acf95a3ebb87b05b802a897eaaf3840d74",
+  "prompts": {},
+  "sessions": {
+    "s_6de394553ec597": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74a8d9ab-774d-4362-856c-0ca87df777b3",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
