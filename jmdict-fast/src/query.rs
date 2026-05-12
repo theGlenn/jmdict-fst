@@ -10,8 +10,8 @@ use std::vec;
 pub const MAX_FUZZY_DISTANCE: u32 = 4;
 
 /// An iterator that lazily deserializes dictionary entries from pre-sorted match candidates.
-pub struct LookupResultIter<'d, 'a> {
-    dict: &'d Dict<'a>,
+pub struct LookupResultIter<'d> {
+    dict: &'d Dict,
     candidates: vec::IntoIter<MatchCandidate>,
     common_only: bool,
     pos_filter: Vec<String>,
@@ -19,7 +19,7 @@ pub struct LookupResultIter<'d, 'a> {
     yielded: usize,
 }
 
-impl<'d, 'a> Iterator for LookupResultIter<'d, 'a> {
+impl<'d> Iterator for LookupResultIter<'d> {
     type Item = LookupResult;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -68,8 +68,8 @@ impl<'d, 'a> Iterator for LookupResultIter<'d, 'a> {
 }
 
 /// A builder for configuring and executing dictionary lookups.
-pub struct QueryBuilder<'d, 'a> {
-    dict: &'d Dict<'a>,
+pub struct QueryBuilder<'d> {
+    dict: &'d Dict,
     term: String,
     mode: MatchMode,
     common_only: bool,
@@ -78,8 +78,8 @@ pub struct QueryBuilder<'d, 'a> {
     max_distance: u32,
 }
 
-impl<'d, 'a> QueryBuilder<'d, 'a> {
-    pub(crate) fn new(dict: &'d Dict<'a>, term: impl Into<String>) -> Self {
+impl<'d> QueryBuilder<'d> {
+    pub(crate) fn new(dict: &'d Dict, term: impl Into<String>) -> Self {
         Self {
             dict,
             term: term.into(),
@@ -133,7 +133,7 @@ impl<'d, 'a> QueryBuilder<'d, 'a> {
     ///
     /// This is more memory-efficient than `execute()` for large result sets (e.g., prefix
     /// or fuzzy queries with many matches), as entries are only deserialized as consumed.
-    pub fn execute_iter(self) -> Result<LookupResultIter<'d, 'a>, JmdictError> {
+    pub fn execute_iter(self) -> Result<LookupResultIter<'d>, JmdictError> {
         let candidates = match self.mode {
             MatchMode::Exact => self.dict.exact_candidates(&self.term),
             MatchMode::Prefix => self.dict.prefix_candidates(&self.term),
@@ -153,8 +153,8 @@ impl<'d, 'a> QueryBuilder<'d, 'a> {
 }
 
 /// A builder for configuring and executing batch dictionary lookups.
-pub struct BatchQueryBuilder<'d, 'a> {
-    dict: &'d Dict<'a>,
+pub struct BatchQueryBuilder<'d> {
+    dict: &'d Dict,
     terms: Vec<String>,
     mode: MatchMode,
     common_only: bool,
@@ -163,8 +163,8 @@ pub struct BatchQueryBuilder<'d, 'a> {
     max_distance: u32,
 }
 
-impl<'d, 'a> BatchQueryBuilder<'d, 'a> {
-    pub(crate) fn new(dict: &'d Dict<'a>, terms: Vec<String>) -> Self {
+impl<'d> BatchQueryBuilder<'d> {
+    pub(crate) fn new(dict: &'d Dict, terms: Vec<String>) -> Self {
         Self {
             dict,
             terms,

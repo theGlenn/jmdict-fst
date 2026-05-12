@@ -13,10 +13,12 @@
 ## Features
 
 - **O(log n) lookups** across kanji, kana, and romaji
-- **Memory-mapped** FST indexes with zero-copy access
+- **Memory-mapped** FST indexes with zero-copy access (runtime `load`) — the
+  kernel pages data in on demand, with no upfront read into a `Vec`
 - **Deinflection** support via [bunpo](https://crates.io/crates/bunpo)
 - **Two loading modes:** embedded (compile-time) or runtime (filesystem)
 - **Full JMdict data** including antonyms, dialects, field tags, and cross-references
+- **Lookup by JMdict ID** plus a sequential iterator over every entry
 
 ---
 
@@ -179,6 +181,27 @@ If you were using `Dict::load_default()` before, it continues to work — just g
 - `dict.lookup_exact(term)` — Exact match across kana, kanji, romaji
 - `dict.lookup_partial(prefix)` — Prefix search
 - `dict.lookup_exact_with_deinflection(term)` — Exact match with verb/adjective deinflection
+- `dict.lookup_by_id(jmdict_id)` — Fetch by stable JMdict ID (string)
+- `dict.lookup(term)` — `QueryBuilder` with `mode`, `common_only`, `pos`, `limit`, `max_distance`
+- `dict.lookup_batch(terms)` — Same builder, multiple terms at once
+
+### Browsing
+
+- `dict.get(seq_id)` — Fetch by sequential (internal) index `0..entry_count()`
+- `dict.iter_entries()` — Lazy iterator over every entry
+- `dict.entry_count()` / `dict.version()` — Dictionary metadata
+
+### Entry helpers
+
+```rust
+let entry = dict.lookup_exact("猫")[0].entry.clone();
+entry.primary_kanji();   // Some("猫")
+entry.primary_kana();    // Some("ねこ")
+entry.headword();        // kanji if present, else kana
+entry.is_common();
+entry.glosses("eng");    // Iterator<Item = &str>
+entry.parts_of_speech(); // Vec<&str>, distinct, first-seen order
+```
 
 ### Entry Structure
 
