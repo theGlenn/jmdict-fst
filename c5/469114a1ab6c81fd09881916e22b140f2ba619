@@ -1,0 +1,19 @@
+AGENTS.md
+  s_6de394553ec597::t_af287e9784185b 1-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "c5469114a1ab6c81fd09881916e22b140f2ba619",
+  "prompts": {},
+  "sessions": {
+    "s_6de394553ec597": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74a8d9ab-774d-4362-856c-0ca87df777b3",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
