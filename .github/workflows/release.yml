@@ -9,9 +9,13 @@ permissions:
 
 jobs:
   build-data:
+    # release-plz tags each crate as `<crate>-v<version>`. The data tarball
+    # is the runtime data for jmdict-fast specifically — bunpo does not need
+    # it — so only build and attach for jmdict-fast releases.
+    if: startsWith(github.event.release.tag_name, 'jmdict-fast-')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable

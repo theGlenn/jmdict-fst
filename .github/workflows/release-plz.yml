@@ -19,7 +19,7 @@ jobs:
       group: release-plz-pr
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
@@ -28,10 +28,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Run release-plz (release-pr)
-        # Pinned to v0.5.99 by commit SHA — this action has workspace write
+        # Pinned to v0.5.129 by commit SHA — this action has workspace write
         # permissions and access to CARGO_REGISTRY_TOKEN, so we don't track a
         # mutable major-version tag.
-        uses: release-plz/action@476794ede164c5137bfc3a1dc6ed3675275690f9
+        uses: release-plz/action@064f4d1e36c843611ddf013be726beaa4ad804db
         with:
           command: release-pr
         env:
@@ -52,7 +52,7 @@ jobs:
       group: release-plz-publish
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_PLZ_TOKEN || secrets.GITHUB_TOKEN }}
@@ -61,7 +61,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Run release-plz (release)
-        uses: release-plz/action@476794ede164c5137bfc3a1dc6ed3675275690f9
+        uses: release-plz/action@064f4d1e36c843611ddf013be726beaa4ad804db
         with:
           command: release
         env:
