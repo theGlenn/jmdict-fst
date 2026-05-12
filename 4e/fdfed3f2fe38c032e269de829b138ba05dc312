@@ -1,0 +1,24 @@
+jmdict-fast/AGENTS.md
+  s_6de394553ec597::t_929c095dab7c2c 32-34,36
+  s_6de394553ec597::t_e352f1f3a1025a 46-47
+  s_6de394553ec597::t_766a1e9d29bb33 7,9,12,15,18-26
+  s_6de394553ec597::t_c1e9eefccd9ad6 51
+  s_6de394553ec597::t_ddda18d196c02b 114
+  s_6de394553ec597::t_ed648c836ac0e1 110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "4efdfed3f2fe38c032e269de829b138ba05dc312",
+  "prompts": {},
+  "sessions": {
+    "s_6de394553ec597": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74a8d9ab-774d-4362-856c-0ca87df777b3",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
