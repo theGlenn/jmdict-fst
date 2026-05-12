@@ -136,6 +136,27 @@ fn parse_entries_header(data: &[u8]) -> Result<HeaderInfo, JmdictError> {
     })
 }
 
+/// Binary search for `id` in a posting-list byte slice. The slice is treated
+/// as `N × 8` bytes of little-endian `u64`s sorted ascending — the layout
+/// `xtask` writes for `gloss_postings.bin`. Avoids decoding the whole list
+/// into a `Vec<u64>` for the common case where we only need membership.
+fn postings_contains(bytes: &[u8], id: u64) -> bool {
+    let n = bytes.len() / 8;
+    let mut lo = 0;
+    let mut hi = n;
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        let chunk = &bytes[mid * 8..mid * 8 + 8];
+        let v = u64::from_le_bytes(chunk.try_into().unwrap());
+        match v.cmp(&id) {
+            std::cmp::Ordering::Less => lo = mid + 1,
+            std::cmp::Ordering::Greater => hi = mid,
+            std::cmp::Ordering::Equal => return true,
+        }
+    }
+    false
+}
+
 fn mmap_storage(path: &Path) -> Result<DictStorage, JmdictError> {
     let file = File::open(path)?;
     // SAFETY: the Mmap is kept alive inside an Arc inside DictStorage. We
@@ -487,44 +508,52 @@ impl Dict {
     /// mixed pipelines. Returns an empty `Vec` if the query has no usable
     /// tokens or any token is absent.
     pub fn lookup_gloss(&self, query: &str) -> Vec<LookupResult> {
-        let tokens: Vec<String> = query
+        // Mirror the build-time tokenizer in xtask: ASCII alphanumeric,
+        // lowercased, sorted and deduped. Sorting+dedup makes "cat cat" and
+        // "cat box" / "box cat" canonical so the match_key is stable and we
+        // don't read the same posting list twice.
+        let mut tokens: Vec<String> = query
             .split(|c: char| !c.is_ascii_alphanumeric())
             .filter(|s| !s.is_empty())
             .map(|s| s.to_ascii_lowercase())
             .collect();
+        tokens.sort();
+        tokens.dedup();
         if tokens.is_empty() {
             return Vec::new();
         }
 
-        // For each token, read its posting list. If any token is missing, the
-        // ANDed result is empty by definition.
-        let mut posting_lists: Vec<Vec<u64>> = Vec::with_capacity(tokens.len());
+        // For each token, take a *borrowed slice* into the mmap'd postings
+        // file. No allocation — the slice is already the array of u64 ids
+        // (sorted, deduped, little-endian) at the right offset.
+        let mut posting_lists: Vec<&[u8]> = Vec::with_capacity(tokens.len());
         for tok in &tokens {
             match self.gloss_postings_for(tok) {
-                Some(ids) => posting_lists.push(ids),
+                Some(bytes) => posting_lists.push(bytes),
                 None => return Vec::new(),
             }
         }
 
-        // Intersect smallest-first to minimize work.
+        // Intersect smallest-first to minimize work. Only the smallest list
+        // is iterated; the rest are binary-searched in place.
         posting_lists.sort_by_key(|p| p.len());
-        let smallest = &posting_lists[0];
+        let smallest = posting_lists[0];
         let rest = &posting_lists[1..];
 
-        // Posting lists are written sorted+deduped by xtask (BTreeSet input),
-        // so the smallest list is already sorted and unique. Filtering it by
-        // binary-searching each other list preserves both properties.
         let intersected: Vec<u64> = smallest
-            .iter()
-            .copied()
-            .filter(|id| rest.iter().all(|other| other.binary_search(id).is_ok()))
+            .chunks_exact(8)
+            .map(|c| u64::from_le_bytes(c.try_into().unwrap()))
+            .filter(|id| rest.iter().all(|other| postings_contains(other, *id)))
             .collect();
 
         // Score: 0.6 ceiling; rarer tokens nudge the score up via 1 /
-        // posting-list-size. Multi-token queries already raise selectivity
-        // (intersection), so a small base score is sufficient.
-        let total_len: usize = posting_lists.iter().map(|p| p.len()).sum::<usize>().max(1);
-        let score = 0.6f64.min(0.3 + (tokens.len() as f64) / (total_len as f64));
+        // posting-list-size (in entry counts, not bytes).
+        let total_entries: usize = posting_lists
+            .iter()
+            .map(|p| p.len() / 8)
+            .sum::<usize>()
+            .max(1);
+        let score = 0.6f64.min(0.3 + (tokens.len() as f64) / (total_entries as f64));
 
         let key = tokens.join(" ");
         intersected
@@ -541,20 +570,17 @@ impl Dict {
             .collect()
     }
 
-    /// Read the posting list for a single gloss token. Returns `None` if the
-    /// token is not in the gloss FST, or if the postings file is truncated.
-    fn gloss_postings_for(&self, token: &str) -> Option<Vec<u64>> {
+    /// Borrow the posting bytes for a single gloss token. The returned slice
+    /// is `count × 8` bytes of little-endian `u64` entry ids, already sorted
+    /// and deduplicated by `xtask`. Returns `None` if the token is absent or
+    /// the postings file is truncated.
+    fn gloss_postings_for(&self, token: &str) -> Option<&[u8]> {
         let offset = self.gloss_fst.get(token)? as usize;
         let postings = self.gloss_postings.as_ref();
         let count = u32::from_le_bytes(postings.get(offset..offset + 4)?.try_into().ok()?) as usize;
         let start = offset + 4;
         let end = start + count * 8;
-        let bytes = postings.get(start..end)?;
-        let mut ids = Vec::with_capacity(count);
-        for chunk in bytes.chunks_exact(8) {
-            ids.push(u64::from_le_bytes(chunk.try_into().ok()?));
-        }
-        Some(ids)
+        postings.get(start..end)
     }
 
     /// Resolve a cross-reference ([`Xref`]) to dictionary entries.
@@ -673,6 +699,32 @@ impl<'d> Iterator for EntryIter<'d> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn pack(ids: &[u64]) -> Vec<u8> {
+        let mut v = Vec::with_capacity(ids.len() * 8);
+        for id in ids {
+            v.extend_from_slice(&id.to_le_bytes());
+        }
+        v
+    }
+
+    #[test]
+    fn postings_contains_hits_and_misses() {
+        let bytes = pack(&[1, 5, 10, 100, 1_000_000]);
+        assert!(postings_contains(&bytes, 1));
+        assert!(postings_contains(&bytes, 10));
+        assert!(postings_contains(&bytes, 1_000_000));
+        assert!(!postings_contains(&bytes, 0));
+        assert!(!postings_contains(&bytes, 2));
+        assert!(!postings_contains(&bytes, 99));
+        assert!(!postings_contains(&bytes, 1_000_001));
+    }
+
+    #[test]
+    fn postings_contains_empty_slice() {
+        assert!(!postings_contains(&[], 0));
+        assert!(!postings_contains(&[], 42));
+    }
 
     #[test]
     fn dict_storage_as_ref_owned() {
