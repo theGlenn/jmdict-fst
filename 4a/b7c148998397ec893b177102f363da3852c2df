@@ -1,0 +1,37 @@
+jmdict-fast/tests/lookup.rs
+  s_93695b0e6f8b2f::t_a9e48b7946b4e5 10-18
+  s_93695b0e6f8b2f::t_3b4b9244d5a46c 1-9,21,69-82,138,203-231,272,307,320,369-370,459-475,545-546,621-622,640,642-643,645-650,652-655,659,661-701
+jmdict-fast/src/query.rs
+  s_93695b0e6f8b2f::t_9d99b46453f88e 13-14,22,71-72,81-82,136,156-157,166-167
+jmdict-fast/README.md
+  s_93695b0e6f8b2f::t_c28328fa13bc5b 184-204
+  s_93695b0e6f8b2f::t_ed3674f608ce95 16-17,21
+jmdict-fast/src/lib.rs
+  s_93695b0e6f8b2f::t_4ee968fa03dc36 8,11
+jmdict-fast/src/model.rs
+  s_93695b0e6f8b2f::t_f35714382838eb 173-304
+  s_93695b0e6f8b2f::t_8fb8e7505a39cd 69-115
+jmdict-fast/src/dict.rs
+  s_93695b0e6f8b2f::t_f37b0e480d4c42 570-573,598
+  s_93695b0e6f8b2f::t_54476d70cd1ab2 550-569,574-597,599-616
+  s_93695b0e6f8b2f::t_b5d718770f468c 9-35,61-66,134-146,148-171,173,175-179,187-188,191-196,444,449,453-487,512-514,520-547
+bunpo/src/kana.rs
+  s_93695b0e6f8b2f::t_f4c94472371fa4 401-443
+  s_93695b0e6f8b2f::t_67af02d0b1f0b6 229-237,239-365
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "4ab7c148998397ec893b177102f363da3852c2df",
+  "prompts": {},
+  "sessions": {
+    "s_93695b0e6f8b2f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "03076c23-c9e6-434b-be39-e6033b49be4f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
