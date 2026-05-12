@@ -1,25 +1,24 @@
-use crate::*;
+//! Integration tests that exercise the full library against real JMdict data.
+//!
+//! These need `dist/` to exist (run `cargo xtask generate` or set
+//! `JMDICT_DATA`). They are intentionally separated from unit tests so the
+//! `cargo test --lib` suite stays runnable without dictionary data.
 
-#[test]
-#[cfg(feature = "embedded")]
-fn test_load_dict_embedded() {
-    let dict = Dict::load_embedded().expect("load failed");
-    assert!(dict.kana_fst.contains_key("ねこ"));
-    assert!(dict.kanji_fst.contains_key("猫"));
-    assert!(dict.romaji_fst.contains_key("neko"));
+use jmdict_fast::*;
 
-    assert!(dict.kana_fst.contains_key("たべる"));
-    assert!(dict.kanji_fst.contains_key("食べる"));
-
-    // uncommon kana
-    assert!(dict.kana_fst.contains_key("にゃんこ"));
-    // uncommon kanji
-    assert!(dict.kanji_fst.contains_key("鯉"));
+fn create_test_dict() -> Dict {
+    // `cargo test --test lookup` runs with CWD set to the crate, so the
+    // workspace `dist/` is one directory up. Prefer the `JMDICT_DATA` env
+    // var when set (CI may point it elsewhere); fall back to the workspace
+    // sibling directory.
+    if let Ok(p) = std::env::var("JMDICT_DATA") {
+        return Dict::load(p).expect("load failed");
+    }
+    let dist = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../dist");
+    Dict::load(&dist).expect("load failed")
 }
 
-fn create_test_dict() -> Dict<'static> {
-    Dict::load_default().expect("load failed")
-}
+// --- lookup_exact -----------------------------------------------------------
 
 #[test]
 fn test_lookup_exact() {
@@ -60,13 +59,26 @@ fn test_lookup_exact_verb_no_deinflection_should_not_find() {
 
     let results = dict.lookup_exact("食べます");
 
-    // We cannot find 食べます without deinflection
     assert!(
         results.is_empty(),
         "Expected to not find entries for 食べます"
     );
     assert_eq!(results.len(), 0);
 }
+
+#[test]
+fn test_lookup_exact_multiple() {
+    let dict = create_test_dict();
+
+    let test_words = ["猫", "犬", "魚", "鳥", "花"];
+
+    for word in test_words {
+        let results = dict.lookup_exact(word);
+        assert!(!results.is_empty(), "Expected to find entries for {}", word);
+    }
+}
+
+// --- lookup_exact_with_deinflection -----------------------------------------
 
 #[test]
 fn test_lookup_exact_with_deinflection() {
@@ -123,17 +135,7 @@ fn test_lookup_exact_with_deinflection_kanji() {
     assert_eq!(results.len(), 1);
 }
 
-#[test]
-fn test_lookup_exact_multiple() {
-    let dict = create_test_dict();
-
-    let test_words = ["猫", "犬", "魚", "鳥", "花"];
-
-    for word in test_words {
-        let results = dict.lookup_exact(word);
-        assert!(!results.is_empty(), "Expected to find entries for {}", word);
-    }
-}
+// --- lookup_partial ---------------------------------------------------------
 
 #[test]
 fn test_lookup_partial() {
@@ -159,7 +161,6 @@ fn test_lookup_partial() {
             .any(|r| r.entry.sense[0].gloss[0].text == "to eat"),
         "Expected to find to eat in results"
     );
-    // Verify prefix results have appropriate match types
     assert!(
         results.iter().any(|r| r.match_type == MatchType::Prefix),
         "Expected some Prefix match types"
@@ -170,14 +171,12 @@ fn test_lookup_partial() {
 fn test_lookup_partial_in_depth() {
     let dict = create_test_dict();
 
-    // Test partial lookup - should find entries starting with the term
     let partial_results = dict.lookup_partial("ね");
     assert!(
         !partial_results.is_empty(),
         "Partial lookup should find entries starting with ね"
     );
 
-    // Verify that partial results include entries that start with "ね"
     let has_nekko = partial_results
         .iter()
         .any(|lr| lr.entry.kana.iter().any(|k| k.text.starts_with("ね")));
@@ -186,7 +185,6 @@ fn test_lookup_partial_in_depth() {
         "Partial results should include entries starting with ね"
     );
 
-    // Test that partial lookup finds more results than exact for a prefix
     let exact_neko = dict.lookup_exact("ねこ");
     let partial_neko = dict.lookup_partial("ねこ");
     assert!(
@@ -194,7 +192,6 @@ fn test_lookup_partial_in_depth() {
         "Partial lookup should find at least as many results as exact lookup"
     );
 
-    // Verify results are sorted by score descending
     for window in partial_neko.windows(2) {
         assert!(
             window[0].score >= window[1].score,
@@ -202,6 +199,35 @@ fn test_lookup_partial_in_depth() {
         );
     }
 }
+
+#[test]
+fn test_prefix_results_dedup_by_id_and_keep_best_score() {
+    let dict = create_test_dict();
+    // `たべる` is itself an exact key; under prefix mode it should surface as
+    // an Exact (score 1.0) match for its entry rather than being demoted to a
+    // generic Prefix score because some other key for the same id was visited
+    // first during FST traversal.
+    let results = dict
+        .lookup("たべる")
+        .mode(MatchMode::Prefix)
+        .execute()
+        .unwrap();
+
+    let mut ids: Vec<u64> = results.iter().map(|r| r.entry.id.parse().unwrap_or(0)).collect();
+    let pre_dedup_len = ids.len();
+    ids.sort();
+    ids.dedup();
+    assert_eq!(pre_dedup_len, ids.len(), "results must be deduplicated by entry id");
+
+    let taberu = results
+        .iter()
+        .find(|r| r.entry.kana.iter().any(|k| k.text == "たべる"))
+        .expect("expected to find an entry for たべる");
+    assert_eq!(taberu.match_type, MatchType::Exact);
+    assert_eq!(taberu.score, 1.0);
+}
+
+// --- QueryBuilder -----------------------------------------------------------
 
 #[test]
 fn test_query_builder_exact() {
@@ -234,7 +260,6 @@ fn test_query_builder_deinflect() {
 #[test]
 fn test_query_builder_default_mode_is_exact() {
     let dict = create_test_dict();
-    // Without setting mode, should default to Exact
     let builder_results = dict.lookup("猫").execute().unwrap();
     let direct_results = dict.lookup_exact("猫");
     assert_eq!(builder_results.len(), direct_results.len());
@@ -244,12 +269,7 @@ fn test_query_builder_default_mode_is_exact() {
 #[test]
 fn test_query_builder_common_only() {
     let dict = create_test_dict();
-    // 猫 (cat) is a common word
-    let results = dict
-        .lookup("猫")
-        .common_only(true)
-        .execute()
-        .unwrap();
+    let results = dict.lookup("猫").common_only(true).execute().unwrap();
     assert_eq!(results.len(), 1);
     assert!(
         results[0].entry.kanji.iter().any(|k| k.common)
@@ -271,9 +291,7 @@ fn test_query_builder_common_only_prefix() {
         .common_only(true)
         .execute()
         .unwrap();
-    // Common-only should return fewer or equal results
     assert!(common_results.len() <= all_results.len());
-    // All common results should have at least one common reading
     for r in &common_results {
         assert!(
             r.entry.kanji.iter().any(|k| k.common)
@@ -286,12 +304,7 @@ fn test_query_builder_common_only_prefix() {
 #[test]
 fn test_query_builder_pos_filter() {
     let dict = create_test_dict();
-    // 食べる has POS codes like "v1", "vt"
-    let results = dict
-        .lookup("食べる")
-        .pos(&["v1"])
-        .execute()
-        .unwrap();
+    let results = dict.lookup("食べる").pos(&["v1"]).execute().unwrap();
     assert_eq!(results.len(), 1);
     assert!(results[0]
         .entry
@@ -304,11 +317,7 @@ fn test_query_builder_pos_filter() {
 fn test_query_builder_pos_filter_excludes() {
     let dict = create_test_dict();
     // 猫 is a noun, not a verb — filtering for "v1" should exclude it
-    let results = dict
-        .lookup("猫")
-        .pos(&["v1"])
-        .execute()
-        .unwrap();
+    let results = dict.lookup("猫").pos(&["v1"]).execute().unwrap();
     assert!(results.is_empty(), "猫 should not match v1 POS filter");
 }
 
@@ -334,7 +343,6 @@ fn test_query_builder_limit() {
 #[test]
 fn test_query_builder_chained_filters() {
     let dict = create_test_dict();
-    // Chain all filters together — use "v1" POS code (ichidan verb)
     let results = dict
         .lookup("たべ")
         .mode(MatchMode::Prefix)
@@ -358,6 +366,8 @@ fn test_query_builder_chained_filters() {
     }
 }
 
+// --- Fuzzy ------------------------------------------------------------------
+
 #[test]
 fn test_fuzzy_search_romaji() {
     let dict = create_test_dict();
@@ -372,7 +382,6 @@ fn test_fuzzy_search_romaji() {
         results.iter().any(|r| r.entry.kana.iter().any(|k| k.text == "ねこ")),
         "Fuzzy search for 'nko' should find ねこ (neko)"
     );
-    // All fuzzy (non-exact) results should have score < 1.0
     for r in &results {
         if r.match_type == MatchType::Fuzzy {
             assert!(r.score < 1.0, "Fuzzy results should have score < 1.0");
@@ -383,7 +392,6 @@ fn test_fuzzy_search_romaji() {
 #[test]
 fn test_fuzzy_search_exact_match_included() {
     let dict = create_test_dict();
-    // "neko" should still return an exact match within fuzzy results
     let results = dict
         .lookup("neko")
         .mode(MatchMode::Fuzzy)
@@ -399,7 +407,6 @@ fn test_fuzzy_search_exact_match_included() {
 #[test]
 fn test_fuzzy_search_max_distance() {
     let dict = create_test_dict();
-    // With distance 0, should only get exact matches
     let results_d0 = dict
         .lookup("neko")
         .mode(MatchMode::Fuzzy)
@@ -410,7 +417,6 @@ fn test_fuzzy_search_max_distance() {
         assert_eq!(r.match_type, MatchType::Exact, "Distance 0 should only return exact matches");
     }
 
-    // With distance 2, should get more results than distance 1
     let results_d1 = dict
         .lookup("neko")
         .mode(MatchMode::Fuzzy)
@@ -432,7 +438,6 @@ fn test_fuzzy_search_max_distance() {
 #[test]
 fn test_fuzzy_search_with_filters() {
     let dict = create_test_dict();
-    // Fuzzy search with common_only filter
     let results = dict
         .lookup("neko")
         .mode(MatchMode::Fuzzy)
@@ -452,6 +457,23 @@ fn test_fuzzy_search_with_filters() {
 }
 
 #[test]
+fn test_max_distance_is_clamped() {
+    let dict = create_test_dict();
+    // Asking for an absurd edit distance must not blow up the Levenshtein DFA;
+    // QueryBuilder clamps to MAX_FUZZY_DISTANCE before constructing it.
+    let results = dict
+        .lookup("ねこ")
+        .mode(MatchMode::Fuzzy)
+        .max_distance(100)
+        .limit(1)
+        .execute()
+        .expect("clamped fuzzy query should succeed");
+    assert!(!results.is_empty());
+}
+
+// --- BatchQueryBuilder ------------------------------------------------------
+
+#[test]
 fn test_batch_lookup_basic() {
     let dict = create_test_dict();
     let results = dict
@@ -462,7 +484,6 @@ fn test_batch_lookup_basic() {
     assert_eq!(results[0].0, "猫");
     assert_eq!(results[1].0, "犬");
     assert_eq!(results[2].0, "食べる");
-    // Each term should have results
     for (term, entries) in &results {
         assert!(!entries.is_empty(), "Expected results for {}", term);
     }
@@ -478,9 +499,7 @@ fn test_batch_lookup_with_filters() {
         .execute()
         .unwrap();
     assert_eq!(results.len(), 2);
-    // 猫 is a noun, should have results
     assert!(!results[0].1.is_empty(), "猫 should match noun filter");
-    // 食べる is a verb, should be filtered out by noun POS
     assert!(results[1].1.is_empty(), "食べる should not match noun filter");
 }
 
@@ -512,7 +531,6 @@ fn test_batch_lookup_matches_individual() {
     let terms = &["猫", "犬"];
     let batch = dict.lookup_batch(terms).execute().unwrap();
 
-    // Batch results should match individual lookups
     for (term, batch_entries) in &batch {
         let individual = dict.lookup(term).execute().unwrap();
         assert_eq!(
@@ -523,6 +541,8 @@ fn test_batch_lookup_matches_individual() {
         );
     }
 }
+
+// --- LookupResultIter -------------------------------------------------------
 
 #[test]
 fn test_execute_iter_returns_same_as_execute() {
@@ -549,7 +569,6 @@ fn test_execute_iter_returns_same_as_execute() {
 #[test]
 fn test_execute_iter_lazy_with_limit() {
     let dict = create_test_dict();
-    // Take only 2 from a prefix query that has many results
     let iter = dict
         .lookup("たべ")
         .mode(MatchMode::Prefix)
@@ -588,7 +607,6 @@ fn test_execute_iter_with_filters() {
 #[test]
 fn test_execute_iter_partial_consumption() {
     let dict = create_test_dict();
-    // Only take first result from iterator — rest should not be deserialized
     let mut iter = dict
         .lookup("たべ")
         .mode(MatchMode::Prefix)
@@ -596,16 +614,16 @@ fn test_execute_iter_partial_consumption() {
         .unwrap();
     let first = iter.next();
     assert!(first.is_some(), "Should have at least one result");
-    // Iterator still has more
     let second = iter.next();
     assert!(second.is_some(), "Should have more than one result for prefix たべ");
 }
+
+// --- Metadata, browsing, by-id ---------------------------------------------
 
 #[test]
 fn test_entry_count() {
     let dict = create_test_dict();
     let count = dict.entry_count();
-    // JMdict has tens of thousands of entries
     assert!(count > 10_000, "Expected more than 10,000 entries, got {}", count);
 }
 
@@ -619,43 +637,66 @@ fn test_version() {
 }
 
 #[test]
-fn test_prefix_results_dedup_by_id_and_keep_best_score() {
+fn test_lookup_by_id_roundtrip() {
     let dict = create_test_dict();
-    // `たべる` is itself an exact key; under prefix mode it should surface as
-    // an Exact (score 1.0) match for its entry rather than being demoted to a
-    // generic Prefix score because some other key for the same id was visited
-    // first during FST traversal.
-    let results = dict
-        .lookup("たべる")
-        .mode(MatchMode::Prefix)
-        .execute()
-        .unwrap();
+    let neko = &dict.lookup_exact("猫")[0].entry;
+    let jmdict_id = neko.id.clone();
 
-    let mut ids: Vec<u64> = results.iter().map(|r| r.entry.id.parse().unwrap_or(0)).collect();
-    let pre_dedup_len = ids.len();
-    ids.sort();
-    ids.dedup();
-    assert_eq!(pre_dedup_len, ids.len(), "results must be deduplicated by entry id");
-
-    let taberu = results
-        .iter()
-        .find(|r| r.entry.kana.iter().any(|k| k.text == "たべる"))
-        .expect("expected to find an entry for たべる");
-    assert_eq!(taberu.match_type, MatchType::Exact);
-    assert_eq!(taberu.score, 1.0);
+    let found = dict.lookup_by_id(&jmdict_id).expect("lookup_by_id failed");
+    assert_eq!(found.entry.id, jmdict_id);
+    assert_eq!(found.entry.kanji[0].text, "猫");
+    assert_eq!(found.match_type, MatchType::Exact);
+    assert_eq!(found.score, 1.0);
 }
 
 #[test]
-fn test_max_distance_is_clamped() {
+fn test_lookup_by_id_missing() {
     let dict = create_test_dict();
-    // Asking for an absurd edit distance must not blow up the Levenshtein DFA;
-    // QueryBuilder clamps to MAX_FUZZY_DISTANCE before constructing it.
-    let results = dict
-        .lookup("ねこ")
-        .mode(MatchMode::Fuzzy)
-        .max_distance(100)
-        .limit(1)
-        .execute()
-        .expect("clamped fuzzy query should succeed");
-    assert!(!results.is_empty());
+    assert!(dict.lookup_by_id("0000000").is_none());
+}
+
+#[test]
+fn test_get_by_seq_id() {
+    let dict = create_test_dict();
+    let entry = dict.get(0).expect("first entry should exist");
+    assert!(!entry.id.is_empty());
+
+    let n = dict.entry_count() as u64;
+    assert!(dict.get(n).is_none());
+    assert!(dict.get(n + 1_000_000).is_none());
+}
+
+#[test]
+fn test_iter_entries_walks_every_entry() {
+    let dict = create_test_dict();
+    let count = dict.iter_entries().count();
+    assert_eq!(count, dict.entry_count());
+}
+
+#[test]
+fn test_entry_accessors_against_real_data() {
+    let dict = create_test_dict();
+    let neko = dict.lookup_exact("猫")[0].entry.clone();
+
+    assert_eq!(neko.primary_kanji(), Some("猫"));
+    assert_eq!(neko.primary_kana(), Some("ねこ"));
+    assert_eq!(neko.headword(), Some("猫"));
+    assert!(neko.is_common());
+
+    let eng: Vec<&str> = neko.glosses("eng").collect();
+    assert!(eng.iter().any(|g| g.contains("cat")));
+
+    let pos = neko.parts_of_speech();
+    assert!(pos.iter().any(|p| p.contains("n")));
+}
+
+#[test]
+fn test_entry_headword_falls_back_to_kana_when_no_kanji() {
+    let dict = create_test_dict();
+    let kana_only = dict
+        .iter_entries()
+        .find(|e| e.kanji.is_empty() && !e.kana.is_empty())
+        .expect("expected at least one kana-only entry in JMdict");
+    assert!(kana_only.primary_kanji().is_none());
+    assert_eq!(kana_only.headword(), kana_only.primary_kana());
 }

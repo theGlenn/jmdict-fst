@@ -6,7 +6,33 @@ use crate::query::{BatchQueryBuilder, QueryBuilder};
 use fst::{automaton::Levenshtein, automaton::Str, Automaton, IntoStreamer, Map, Streamer};
 use memmap2::Mmap;
 use std::collections::{BTreeSet, HashMap};
-use std::{borrow::Cow, fs::File, path::Path};
+use std::sync::Arc;
+use std::{fs::File, path::Path};
+
+/// Backing storage for [`Dict`] data. Holds either a memory-mapped file,
+/// a `'static` byte slice (used by the embedded feature), or an owned
+/// allocation. All three implement [`AsRef<[u8]>`] so `fst::Map` can wrap
+/// them uniformly.
+#[derive(Clone)]
+pub enum DictStorage {
+    /// Memory-mapped file; the `Arc` keeps the mapping alive while any
+    /// reference into it exists.
+    Mmap(Arc<Mmap>),
+    /// `'static` slice — typically from `include_bytes!`.
+    Static(&'static [u8]),
+    /// Owned buffer on the heap.
+    Owned(Arc<Vec<u8>>),
+}
+
+impl AsRef<[u8]> for DictStorage {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            DictStorage::Mmap(m) => &m[..],
+            DictStorage::Static(s) => s,
+            DictStorage::Owned(v) => &v[..],
+        }
+    }
+}
 
 /// A raw match candidate from FST search, before entry deserialization.
 #[derive(Clone)]
@@ -32,12 +58,12 @@ fn upsert_better(best: &mut HashMap<u64, MatchCandidate>, cand: MatchCandidate) 
     }
 }
 
-pub struct Dict<'a> {
-    pub entries_blob: Cow<'a, [u8]>,
-    pub kana_fst: Map<Cow<'a, [u8]>>,
-    pub kanji_fst: Map<Cow<'a, [u8]>>,
-    pub romaji_fst: Map<Cow<'a, [u8]>>,
-    pub id_fst: Map<Cow<'a, [u8]>>,
+pub struct Dict {
+    pub entries_blob: DictStorage,
+    pub kana_fst: Map<DictStorage>,
+    pub kanji_fst: Map<DictStorage>,
+    pub romaji_fst: Map<DictStorage>,
+    pub id_fst: Map<DictStorage>,
     deinflector: bunpo::deinflector::Deinflector,
     data_version: DataVersion,
     header_size: usize,
@@ -105,22 +131,52 @@ fn parse_entries_header(data: &[u8]) -> Result<HeaderInfo, JmdictError> {
     })
 }
 
-impl<'a> Dict<'a> {
-    /// Construct a Dict from in-memory slices (e.g., embedded bytes)
+fn mmap_storage(path: &Path) -> Result<DictStorage, JmdictError> {
+    let file = File::open(path)?;
+    // SAFETY: the Mmap is kept alive inside an Arc inside DictStorage. We
+    // never mutate the underlying file, and the kernel will surface SIGBUS
+    // if the file is truncated under us — the same constraint memmap2
+    // documents for any user.
+    let map = unsafe { Mmap::map(&file)? };
+    Ok(DictStorage::Mmap(Arc::new(map)))
+}
+
+impl Dict {
+    /// Construct a `Dict` from `'static` in-memory slices, typically produced
+    /// by `include_bytes!` for the `embedded` feature.
     pub fn from_slices(
-        entries: &'a [u8],
-        kana_fst: &'a [u8],
-        kanji_fst: &'a [u8],
-        romaji_fst: &'a [u8],
-        id_fst: &'a [u8],
+        entries: &'static [u8],
+        kana_fst: &'static [u8],
+        kanji_fst: &'static [u8],
+        romaji_fst: &'static [u8],
+        id_fst: &'static [u8],
     ) -> Result<Self, JmdictError> {
-        let header = parse_entries_header(entries)?;
+        Self::from_storage(
+            DictStorage::Static(entries),
+            DictStorage::Static(kana_fst),
+            DictStorage::Static(kanji_fst),
+            DictStorage::Static(romaji_fst),
+            DictStorage::Static(id_fst),
+        )
+    }
+
+    /// Construct a `Dict` from already-loaded [`DictStorage`] values. Use this
+    /// to wire up custom storage (e.g. data downloaded into an in-memory
+    /// buffer): build `DictStorage::Owned(Arc::new(bytes))` and pass it in.
+    pub fn from_storage(
+        entries: DictStorage,
+        kana_fst: DictStorage,
+        kanji_fst: DictStorage,
+        romaji_fst: DictStorage,
+        id_fst: DictStorage,
+    ) -> Result<Self, JmdictError> {
+        let header = parse_entries_header(entries.as_ref())?;
         Ok(Self {
-            entries_blob: Cow::Borrowed(entries),
-            kana_fst: Map::new(Cow::Borrowed(kana_fst))?,
-            kanji_fst: Map::new(Cow::Borrowed(kanji_fst))?,
-            romaji_fst: Map::new(Cow::Borrowed(romaji_fst))?,
-            id_fst: Map::new(Cow::Borrowed(id_fst))?,
+            entries_blob: entries,
+            kana_fst: Map::new(kana_fst)?,
+            kanji_fst: Map::new(kanji_fst)?,
+            romaji_fst: Map::new(romaji_fst)?,
+            id_fst: Map::new(id_fst)?,
             deinflector: bunpo::deinflector::Deinflector::new(),
             data_version: header.data_version,
             header_size: header.header_size,
@@ -128,35 +184,16 @@ impl<'a> Dict<'a> {
         })
     }
 
-    /// Load all FSTs and entries into memory (via mmap from files)
+    /// Load all FSTs and entries via real `mmap` (zero-copy). The OS pages in
+    /// data on demand and shares it across processes that map the same file.
     pub fn load<P: AsRef<Path>>(base_dir: P) -> Result<Self, JmdictError> {
         let base = base_dir.as_ref();
-        let entries_file = File::open(base.join("entries.bin"))?;
-        let kana_file = File::open(base.join("kana.fst"))?;
-        let kanji_file = File::open(base.join("kanji.fst"))?;
-        let romaji_file = File::open(base.join("romaji.fst"))?;
-        let id_file = File::open(base.join("id.fst"))?;
-        unsafe {
-            let entries_blob = Cow::Owned(Mmap::map(&entries_file)?[..].to_vec());
-            let kana_fst = Cow::Owned(Mmap::map(&kana_file)?[..].to_vec());
-            let kanji_fst = Cow::Owned(Mmap::map(&kanji_file)?[..].to_vec());
-            let romaji_fst = Cow::Owned(Mmap::map(&romaji_file)?[..].to_vec());
-            let id_fst = Cow::Owned(Mmap::map(&id_file)?[..].to_vec());
-
-            let header = parse_entries_header(&entries_blob)?;
-
-            Ok(Dict {
-                entries_blob,
-                kana_fst: Map::new(kana_fst)?,
-                kanji_fst: Map::new(kanji_fst)?,
-                romaji_fst: Map::new(romaji_fst)?,
-                id_fst: Map::new(id_fst)?,
-                deinflector: bunpo::deinflector::Deinflector::new(),
-                data_version: header.data_version,
-                header_size: header.header_size,
-                entry_count: header.entry_count,
-            })
-        }
+        let entries = mmap_storage(&base.join("entries.bin"))?;
+        let kana = mmap_storage(&base.join("kana.fst"))?;
+        let kanji = mmap_storage(&base.join("kanji.fst"))?;
+        let romaji = mmap_storage(&base.join("romaji.fst"))?;
+        let id = mmap_storage(&base.join("id.fst"))?;
+        Self::from_storage(entries, kana, kanji, romaji, id)
     }
 
     #[cfg(feature = "embedded")]
@@ -404,13 +441,48 @@ impl<'a> Dict<'a> {
     }
 
     /// Create a query builder for the given term.
-    pub fn lookup(&self, term: &str) -> QueryBuilder<'_, 'a> {
+    pub fn lookup(&self, term: &str) -> QueryBuilder<'_> {
         QueryBuilder::new(self, term)
     }
 
     /// Create a batch query builder for multiple terms.
-    pub fn lookup_batch(&self, terms: &[&str]) -> BatchQueryBuilder<'_, 'a> {
+    pub fn lookup_batch(&self, terms: &[&str]) -> BatchQueryBuilder<'_> {
         BatchQueryBuilder::new(self, terms.iter().map(|s| s.to_string()).collect())
+    }
+
+    /// Lookup an entry by its JMdict ID (the string `entry.id`, e.g. `"1467640"`).
+    ///
+    /// Returns `None` if no entry with that ID exists.
+    pub fn lookup_by_id(&self, jmdict_id: &str) -> Option<LookupResult> {
+        let seq_id = self.id_fst.get(jmdict_id)?;
+        let entry = self.load_entry(seq_id)?;
+        Some(LookupResult {
+            entry,
+            match_type: MatchType::Exact,
+            match_key: jmdict_id.to_string(),
+            score: 1.0,
+            deinflection: None,
+        })
+    }
+
+    /// Fetch an entry by its sequential (internal) index in `0..entry_count()`.
+    ///
+    /// Sequential IDs are stable for a given `entries.bin` but may change when
+    /// the data is regenerated; use [`Dict::lookup_by_id`] for stable lookups
+    /// across regenerations.
+    pub fn get(&self, seq_id: u64) -> Option<Entry> {
+        self.load_entry(seq_id)
+    }
+
+    /// Iterate over every entry in the dictionary, in sequential-ID order.
+    ///
+    /// Entries are deserialized lazily as the iterator advances.
+    pub fn iter_entries(&self) -> EntryIter<'_> {
+        EntryIter {
+            dict: self,
+            next: 0,
+            end: self.entry_count as u64,
+        }
     }
 
     /// Convert match candidates to results by deserializing entries.
@@ -437,21 +509,110 @@ impl<'a> Dict<'a> {
         }
         let hs = self.header_size;
         let offset_index = hs + 4 + (id as usize) * 8;
-        let off = u32::from_le_bytes(
-            self.entries_blob[offset_index..offset_index + 4]
-                .try_into()
-                .ok()?,
-        );
-        let len = u32::from_le_bytes(
-            self.entries_blob[offset_index + 4..offset_index + 8]
-                .try_into()
-                .ok()?,
-        );
+        let blob = self.entries_blob.as_ref();
+        let off = u32::from_le_bytes(blob[offset_index..offset_index + 4].try_into().ok()?);
+        let len = u32::from_le_bytes(blob[offset_index + 4..offset_index + 8].try_into().ok()?);
 
         let data_start = hs + 4 + count * 8;
         let start = data_start + (off as usize);
         let end = start + len as usize;
 
-        postcard::from_bytes(&self.entries_blob[start..end]).ok()
+        postcard::from_bytes(&blob[start..end]).ok()
+    }
+}
+
+/// Iterator over every [`Entry`] in a [`Dict`], in sequential-ID order.
+pub struct EntryIter<'d> {
+    dict: &'d Dict,
+    next: u64,
+    end: u64,
+}
+
+impl<'d> Iterator for EntryIter<'d> {
+    type Item = Entry;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.next < self.end {
+            let id = self.next;
+            self.next += 1;
+            if let Some(e) = self.dict.load_entry(id) {
+                return Some(e);
+            }
+        }
+        None
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = (self.end - self.next) as usize;
+        (0, Some(remaining))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dict_storage_as_ref_owned() {
+        let storage = DictStorage::Owned(Arc::new(vec![1, 2, 3]));
+        assert_eq!(storage.as_ref(), &[1, 2, 3][..]);
+    }
+
+    #[test]
+    fn dict_storage_as_ref_static() {
+        let storage = DictStorage::Static(b"hello");
+        assert_eq!(storage.as_ref(), b"hello");
+    }
+
+    #[test]
+    fn parse_entries_header_rejects_bad_magic() {
+        let bad = b"XXXX\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+        assert!(matches!(
+            parse_entries_header(bad),
+            Err(JmdictError::DataCorrupted)
+        ));
+    }
+
+    #[test]
+    fn parse_entries_header_rejects_short_buffer() {
+        assert!(matches!(
+            parse_entries_header(&[]),
+            Err(JmdictError::DataCorrupted)
+        ));
+        assert!(matches!(
+            parse_entries_header(b"JMD"),
+            Err(JmdictError::DataCorrupted)
+        ));
+    }
+
+    #[test]
+    fn parse_entries_header_rejects_version_mismatch() {
+        let mut buf = Vec::new();
+        buf.extend_from_slice(MAGIC);
+        buf.extend_from_slice(&(FORMAT_VERSION + 1).to_le_bytes());
+        match parse_entries_header(&buf) {
+            Err(JmdictError::DataVersionMismatch { expected, found }) => {
+                assert_eq!(expected, FORMAT_VERSION);
+                assert_eq!(found, FORMAT_VERSION + 1);
+            }
+            _ => panic!("expected DataVersionMismatch"),
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "embedded")]
+    fn load_dict_embedded() {
+        let dict = Dict::load_embedded().expect("load failed");
+        assert!(dict.kana_fst.contains_key("ねこ"));
+        assert!(dict.kanji_fst.contains_key("猫"));
+        assert!(dict.romaji_fst.contains_key("neko"));
+
+        assert!(dict.kana_fst.contains_key("たべる"));
+        assert!(dict.kanji_fst.contains_key("食べる"));
+
+        // uncommon kana
+        assert!(dict.kana_fst.contains_key("にゃんこ"));
+        // uncommon kanji
+        assert!(dict.kanji_fst.contains_key("鯉"));
     }
 }
