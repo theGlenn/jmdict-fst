@@ -1,0 +1,30 @@
+jmdict-fast-bolt/tests/smoke.rs
+  s_93695b0e6f8b2f::t_f971c3603bfab8 1-120
+jmdict-fast-bolt/Cargo.toml
+  s_93695b0e6f8b2f::t_4d1870a20404bd 1-21
+Cargo.toml
+  s_93695b0e6f8b2f::t_70df728ae5827e 2
+jmdict-fast-bolt/README.md
+  s_93695b0e6f8b2f::t_afe63256bf3fda 1-52
+jmdict-fast-bolt/src/lib.rs
+  s_93695b0e6f8b2f::t_50fff385fb945c 1,4-18,21-213,215-313,316-394,398-486
+  s_93695b0e6f8b2f::t_6d81542b9df450 2-3,19-20,214,314-315,395-397,487-488
+release-plz.toml
+  s_93695b0e6f8b2f::t_1fb724d90cdbe8 26-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "4742b57b12395ce8728dfa3790b683f757c08afe",
+  "prompts": {},
+  "sessions": {
+    "s_93695b0e6f8b2f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "03076c23-c9e6-434b-be39-e6033b49be4f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
