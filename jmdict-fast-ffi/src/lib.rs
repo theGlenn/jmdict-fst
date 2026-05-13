@@ -290,17 +290,42 @@ impl Dict {
 
     /// Run the same query options across many terms. Each `BatchResult`
     /// carries its term alongside the hits so callers can correlate output.
+    ///
+    /// Routes through `core::BatchQueryBuilder` so filter slices are prepared
+    /// once and the options record is not cloned per term.
     pub fn lookup_batch(
         &self,
         terms: Vec<String>,
         options: QueryOptions,
     ) -> Result<Vec<BatchResult>, Error> {
-        let mut out = Vec::with_capacity(terms.len());
-        for term in terms {
-            let results = self.lookup_with_options(term.clone(), options.clone())?;
-            out.push(BatchResult { term, results });
+        let term_refs: Vec<&str> = terms.iter().map(String::as_str).collect();
+        let pos: Vec<&str> = options.pos.iter().map(String::as_str).collect();
+        let misc: Vec<&str> = options.misc.iter().map(String::as_str).collect();
+        let field: Vec<&str> = options.field.iter().map(String::as_str).collect();
+        let dialect: Vec<&str> = options.dialect.iter().map(String::as_str).collect();
+
+        let mut builder = self
+            .inner
+            .lookup_batch(&term_refs)
+            .mode(options.mode)
+            .common_only(options.common_only)
+            .pos(&pos)
+            .misc(&misc)
+            .field(&field)
+            .dialect(&dialect)
+            .max_distance(options.max_distance);
+        if let Some(limit) = options.limit {
+            builder = builder.limit(limit as usize);
         }
-        Ok(out)
+
+        Ok(builder
+            .execute()?
+            .into_iter()
+            .map(|(term, results)| BatchResult {
+                term,
+                results: results.into_iter().map(Into::into).collect(),
+            })
+            .collect())
     }
 
     // ------- Browsing --------------------------------------------------------
