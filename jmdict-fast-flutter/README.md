@@ -31,6 +31,25 @@ jmdict-fast-flutter/
 
 The records in `src/api/model.rs` mirror the facade's types. The mirroring is unavoidable for the same reason as in `jmdict-fast-bolt`: FRB scans this crate's API module, and cross-crate scanning of re-exported types is fragile. Conversions are trivial `From` impls.
 
+### sync vs async on `Dict`
+
+The methods are split deliberately:
+
+| async | Why |
+|---|---|
+| `load`, `load_default` | I/O — mmap several files. |
+| `lookup_gloss` | Posting-list intersection can hit thousands of entries for common tokens. |
+| `lookup_with_options`, `lookup_batch` | Fuzzy / large filters / many terms can blow the 16 ms frame budget. |
+| `resolve_xref` | Routes through `lookup_exact` + filtering; bounded but unbounded-feeling for callers. |
+| `iter_entries` | Caller can ask for arbitrary `count`. |
+
+| sync | Why |
+|---|---|
+| `lookup_exact`, `lookup_partial`, `lookup_exact_with_deinflection`, `lookup_by_id`, `get` | Microsecond-cost FST hits — forcing every Dart consumer to `await` would just add noise. |
+| `entry_count`, `version` | One field read. |
+
+FRB v2 runs `async fn` on a worker thread pool by default, so the async methods surface as `Future<T>` in Dart and never block the UI isolate.
+
 ## Generating bindings
 
 ```bash

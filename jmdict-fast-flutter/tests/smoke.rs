@@ -2,15 +2,26 @@
 //! types and methods that `flutter_rust_bridge_codegen` will export — a
 //! green run means the surface is internally consistent before we generate
 //! Dart bindings.
+//!
+//! `Dict::load` (and a handful of computationally heavier methods) are
+//! `async fn` so FRB offloads them to a worker thread in Dart. We block on
+//! them here with `pollster` rather than spinning up Tokio — the futures
+//! never `.await` on anything, so any blocking executor resolves them on the
+//! first poll.
 
 use jmdict_fast_flutter::api::{Dict, MatchMode, MatchType, QueryOptions, Xref};
+use pollster::FutureExt;
 
 fn load() -> Dict {
-    if let Ok(p) = std::env::var("JMDICT_DATA") {
-        return Dict::load(p).expect("load failed");
-    }
-    let dist = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../dist");
-    Dict::load(dist.to_string_lossy().into_owned()).expect("load failed")
+    let path = if let Ok(p) = std::env::var("JMDICT_DATA") {
+        p
+    } else {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../dist")
+            .to_string_lossy()
+            .into_owned()
+    };
+    Dict::load(path).block_on().expect("load failed")
 }
 
 #[test]
@@ -32,7 +43,7 @@ fn lookup_partial_through_frb_surface() {
 #[test]
 fn lookup_gloss_through_frb_surface() {
     let dict = load();
-    let results = dict.lookup_gloss("cat".to_string());
+    let results = dict.lookup_gloss("cat".to_string()).block_on();
     assert!(results.iter().any(|r| matches!(r.match_type, MatchType::Gloss)));
 }
 
@@ -51,6 +62,7 @@ fn lookup_with_options_through_frb_surface() {
     };
     let results = dict
         .lookup_with_options("たべ".to_string(), options)
+        .block_on()
         .expect("options query failed");
     assert!(results.len() <= 5);
 }
@@ -70,6 +82,7 @@ fn lookup_batch_through_frb_surface() {
     };
     let batch = dict
         .lookup_batch(vec!["猫".into(), "犬".into()], options)
+        .block_on()
         .expect("batch failed");
     assert_eq!(batch.len(), 2);
     assert_eq!(batch[0].term, "猫");
@@ -93,17 +106,17 @@ fn resolve_xref_through_frb_surface() {
         reading: None,
         sense_index: None,
     };
-    let results = dict.resolve_xref(xref);
+    let results = dict.resolve_xref(xref).block_on();
     assert!(results.iter().any(|r| r.entry.kanji[0].text == "猫"));
 }
 
 #[test]
 fn iter_entries_paginates_through_frb_surface() {
     let dict = load();
-    let ten = dict.iter_entries(0, 10);
+    let ten = dict.iter_entries(0, 10).block_on();
     assert_eq!(ten.len(), 10);
     let total = dict.entry_count();
-    let tail = dict.iter_entries(total - 3, 10);
+    let tail = dict.iter_entries(total - 3, 10).block_on();
     assert_eq!(tail.len(), 3);
 }
 

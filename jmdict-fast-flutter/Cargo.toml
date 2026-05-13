@@ -17,7 +17,14 @@ crate-type = ["lib", "cdylib", "staticlib"]
 
 [dependencies]
 jmdict-fast-ffi = { path = "../jmdict-fast-ffi", version = "0.1.2" }
-# Drop FRB's default features for a clean scaffold compile. The codegen step
-# in the consuming Flutter app re-enables what each target actually needs
-# (e.g. `dart-opaque` for iOS/Android, `rust-async` if any API is async).
-flutter_rust_bridge = { version = "2", default-features = false }
+# Keep FRB's default features on: `dart-opaque` is needed for the `Dict`
+# handle (opaque type passed across the boundary), `rust-async` for the
+# `async fn` methods FRB offloads to a worker thread, `anyhow` for the
+# generator's error plumbing. Trimming defaults breaks codegen for any
+# non-trivial API surface.
+flutter_rust_bridge = "2"
+
+[dev-dependencies]
+# Tiny blocking executor so smoke tests can `await` the async surface
+# without pulling in a full Tokio runtime.
+pollster = "0.4"

@@ -14,17 +14,31 @@ use super::model::{
 /// receives an opaque pointer and invokes methods via the generated glue.
 /// The handle is shareable across isolates because `Arc<facade::Dict>` is
 /// `Send + Sync`.
+///
+/// ## sync vs async methods
+///
+/// Methods are intentionally split:
+///
+/// - **`async fn`** for anything that does I/O or whose worst case can blow
+///   the 16 ms frame budget (`load`, `load_default`, `lookup_gloss`,
+///   `lookup_with_options`, `lookup_batch`, `resolve_xref`, `iter_entries`).
+///   FRB v2 runs `async` Rust functions on a worker thread and surfaces them
+///   as `Future<T>` in Dart, so they don't block the Flutter UI isolate.
+/// - **`fn`** for cheap, bounded calls (`lookup_exact`, `lookup_partial`,
+///   `lookup_exact_with_deinflection`, `lookup_by_id`, `get`, `entry_count`,
+///   `version`). These resolve in microseconds against the mmap'd FST;
+///   forcing every consumer to `await` them would be noise.
 pub struct Dict {
     inner: Arc<facade::Dict>,
 }
 
 impl Dict {
-    pub fn load(path: String) -> Result<Self, Error> {
+    pub async fn load(path: String) -> Result<Self, Error> {
         let inner = facade::Dict::load(path)?;
         Ok(Self { inner })
     }
 
-    pub fn load_default() -> Result<Self, Error> {
+    pub async fn load_default() -> Result<Self, Error> {
         let inner = facade::Dict::load_default()?;
         Ok(Self { inner })
     }
@@ -61,7 +75,7 @@ impl Dict {
             .collect()
     }
 
-    pub fn lookup_gloss(&self, query: String) -> Vec<LookupResult> {
+    pub async fn lookup_gloss(&self, query: String) -> Vec<LookupResult> {
         self.inner
             .lookup_gloss(query)
             .into_iter()
@@ -73,7 +87,7 @@ impl Dict {
         self.inner.lookup_by_id(jmdict_id).map(Into::into)
     }
 
-    pub fn lookup_with_options(
+    pub async fn lookup_with_options(
         &self,
         term: String,
         options: QueryOptions,
@@ -82,7 +96,7 @@ impl Dict {
         Ok(results.into_iter().map(Into::into).collect())
     }
 
-    pub fn lookup_batch(
+    pub async fn lookup_batch(
         &self,
         terms: Vec<String>,
         options: QueryOptions,
@@ -91,7 +105,7 @@ impl Dict {
         Ok(results.into_iter().map(Into::into).collect())
     }
 
-    pub fn resolve_xref(&self, xref: Xref) -> Vec<LookupResult> {
+    pub async fn resolve_xref(&self, xref: Xref) -> Vec<LookupResult> {
         self.inner
             .resolve_xref(xref.into())
             .into_iter()
@@ -103,7 +117,7 @@ impl Dict {
         self.inner.get(seq_id).map(Into::into)
     }
 
-    pub fn iter_entries(&self, start: u64, count: u64) -> Vec<Entry> {
+    pub async fn iter_entries(&self, start: u64, count: u64) -> Vec<Entry> {
         self.inner
             .iter_entries(start, count)
             .into_iter()
