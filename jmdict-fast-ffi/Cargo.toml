@@ -1,0 +1,14 @@
+[package]
+name = "jmdict-fast-ffi"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "FFI-agnostic facade over jmdict-fast (designed for uniffi, flutter_rust_bridge, bolt-ffi, etc.)"
+keywords = ["japanese", "dictionary", "jmdict", "ffi", "uniffi"]
+categories = ["text-processing", "internationalization"]
+publish = false
+
+[dependencies]
+jmdict-fast = { path = "../jmdict-fast", version = "0.1.2" }
