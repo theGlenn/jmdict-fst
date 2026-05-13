@@ -1,0 +1,23 @@
+[package]
+name = "jmdict-fast-flutter"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "flutter_rust_bridge bindings for jmdict-fast — Rust side of the Flutter/Dart SDK"
+keywords = ["japanese", "dictionary", "jmdict", "flutter", "dart"]
+categories = ["text-processing", "internationalization"]
+publish = false
+
+[lib]
+# `lib` lets us run `cargo test` against the API module from regular Rust.
+# `cdylib`/`staticlib` produce the artifacts Flutter/Dart loads at runtime.
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[dependencies]
+jmdict-fast-ffi = { path = "../jmdict-fast-ffi", version = "0.1.2" }
+# Drop FRB's default features for a clean scaffold compile. The codegen step
+# in the consuming Flutter app re-enables what each target actually needs
+# (e.g. `dart-opaque` for iOS/Android, `rust-async` if any API is async).
+flutter_rust_bridge = { version = "2", default-features = false }
