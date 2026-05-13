@@ -1,0 +1,43 @@
+jmdict-fast-flutter/src/api/model.rs
+  s_93695b0e6f8b2f::t_6646c6bcc12b83 1-295
+jmdict-fast-flutter/src/api/mod.rs
+  s_93695b0e6f8b2f::t_2b2311c7e82287 1-22
+jmdict-fast-flutter/flutter_rust_bridge.yaml
+  s_93695b0e6f8b2f::t_ffedb64e301a35 1-12
+Cargo.toml
+  s_93695b0e6f8b2f::t_8ccbf227f33e77 2-9
+jmdict-fast-flutter/src/lib.rs
+  s_93695b0e6f8b2f::t_b5e0c2078b0465 1-14
+jmdict-fast-flutter/Cargo.toml
+  s_93695b0e6f8b2f::t_df0fdaf1f1eb77 1-23
+jmdict-fast-flutter/src/api/error.rs
+  s_93695b0e6f8b2f::t_b477ab50a368e7 1-54
+jmdict-fast-flutter/src/api/dictionary.rs
+  s_93695b0e6f8b2f::t_d0babd75f0f47a 1-113
+jmdict-fast-flutter/dart/pubspec.yaml
+  s_93695b0e6f8b2f::t_9a18ebc0304364 1-29
+jmdict-fast-flutter/README.md
+  s_93695b0e6f8b2f::t_75905715d9dc23 1-73
+jmdict-fast-flutter/dart/lib/jmdict_fast.dart
+  s_93695b0e6f8b2f::t_3756790a2ff9ac 1-19
+release-plz.toml
+  s_93695b0e6f8b2f::t_fe11ec590eb087 32-38
+jmdict-fast-flutter/tests/smoke.rs
+  s_93695b0e6f8b2f::t_0ca2440a4086e9 1-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "11a371f4aae0ffc85f960b557d6f69f6160afbfb",
+  "prompts": {},
+  "sessions": {
+    "s_93695b0e6f8b2f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "03076c23-c9e6-434b-be39-e6033b49be4f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
