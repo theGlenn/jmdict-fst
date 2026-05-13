@@ -1,0 +1,21 @@
+[package]
+name = "jmdict-fast-bolt"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "BoltFFI bindings (Swift/Kotlin/Java/C#/WASM) for jmdict-fast — describes the FFI-agnostic facade"
+keywords = ["japanese", "dictionary", "jmdict", "ffi", "boltffi"]
+categories = ["text-processing", "internationalization"]
+publish = false
+
+[lib]
+# `lib` keeps the crate usable from regular Rust workflows (cargo test,
+# downstream Rust callers). `staticlib` + `cdylib` produce the C-ABI
+# artifacts that `boltffi pack` consumes.
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[dependencies]
+jmdict-fast-ffi = { path = "../jmdict-fast-ffi", version = "0.1.2" }
+boltffi = "0.25"
