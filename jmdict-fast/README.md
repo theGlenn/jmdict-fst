@@ -182,7 +182,9 @@ If you were using `Dict::load_default()` before, it continues to work — just g
 - `dict.lookup_partial(prefix)` — Prefix search
 - `dict.lookup_exact_with_deinflection(term)` — Exact match with verb/adjective deinflection
 - `dict.lookup_by_id(jmdict_id)` — Fetch by stable JMdict ID (string)
-- `dict.lookup(term)` — `QueryBuilder` with `mode`, `common_only`, `pos`, `limit`, `max_distance`
+- `dict.lookup_gloss("to eat")` — Reverse lookup by English gloss (multi-token = AND)
+- `dict.resolve_xref(&xref)` — Walk `SenseEntry::related` / `antonym` to entries
+- `dict.lookup(term)` — `QueryBuilder` with `mode`, `common_only`, `pos`, `misc`, `field`, `dialect`, `limit`, `max_distance`
 - `dict.lookup_batch(terms)` — Same builder, multiple terms at once
 
 ### Browsing

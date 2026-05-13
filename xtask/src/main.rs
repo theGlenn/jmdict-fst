@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use deunicode::deunicode;
 use fst::MapBuilder;
 use jmdict_fast::{FORMAT_VERSION, MAGIC};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
@@ -105,6 +106,13 @@ fn generate(output_dir: &Path) -> anyhow::Result<()> {
     write_fst(&output_dir.join("romaji.fst"), &romaji_map)?;
     write_fst(&output_dir.join("id.fst"), &id_mapping)?;
 
+    eprintln!("Building gloss reverse index...");
+    write_gloss_index(
+        &output_dir.join("gloss.fst"),
+        &output_dir.join("gloss_postings.bin"),
+        &entries,
+    )?;
+
     eprintln!("Writing binary blob...");
     eprintln!("Writing {} entries to binary blob", entries.len());
     let generated_at = chrono::Utc::now().to_rfc3339();
@@ -116,6 +124,70 @@ fn generate(output_dir: &Path) -> anyhow::Result<()> {
     )?;
 
     eprintln!("Done ✅ Output written to {}", output_dir.display());
+    Ok(())
+}
+
+/// Tokenize an English gloss into lowercase ASCII tokens. Non-ASCII chars and
+/// punctuation are treated as separators. Returns deduplicated tokens; we don't
+/// care about per-gloss term frequency because postings are sets of entry ids.
+fn tokenize_gloss(text: &str) -> Vec<String> {
+    let mut tokens: Vec<String> = text
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_ascii_lowercase())
+        .collect();
+    tokens.sort();
+    tokens.dedup();
+    tokens
+}
+
+/// Build the gloss reverse-lookup index — an FST of English tokens that maps
+/// each token to a byte offset in `gloss_postings.bin`. At that offset live a
+/// `u32` posting count followed by `count × u64` entry ids (little-endian).
+///
+/// Multi-token queries (e.g. `"to eat"`) are intersected at query time, so the
+/// postings themselves don't store positions — just the set of entry ids whose
+/// glosses contain the token.
+fn write_gloss_index(
+    fst_path: &Path,
+    postings_path: &Path,
+    entries: &[dict::Entry],
+) -> anyhow::Result<()> {
+    use std::io::{BufWriter, Write};
+
+    // token → sorted entry ids
+    let mut index: BTreeMap<String, BTreeSet<u64>> = BTreeMap::new();
+    for (seq_id, entry) in entries.iter().enumerate() {
+        let id = seq_id as u64;
+        for sense in &entry.sense {
+            for gloss in &sense.gloss {
+                if gloss.lang != "eng" {
+                    continue;
+                }
+                for tok in tokenize_gloss(&gloss.text) {
+                    index.entry(tok).or_default().insert(id);
+                }
+            }
+        }
+    }
+
+    eprintln!("  - gloss.fst: {} unique tokens", index.len());
+
+    let mut postings = BufWriter::new(fs::File::create(postings_path)?);
+    let mut fst_builder = MapBuilder::new(fs::File::create(fst_path)?)?;
+    let mut offset: u64 = 0;
+    for (token, ids) in &index {
+        fst_builder.insert(token.as_bytes(), offset)?;
+        let count = ids.len() as u32;
+        postings.write_all(&count.to_le_bytes())?;
+        for id in ids {
+            postings.write_all(&id.to_le_bytes())?;
+        }
+        offset += 4 + (ids.len() as u64) * 8;
+    }
+    fst_builder.finish()?;
+    postings.flush()?;
+    eprintln!("  - gloss_postings.bin: {} bytes", offset);
     Ok(())
 }
 

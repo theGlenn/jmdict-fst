@@ -11,7 +11,15 @@ fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_path = Path::new(&out_dir);
 
-    let required_files = ["entries.bin", "kana.fst", "kanji.fst", "romaji.fst", "id.fst"];
+    let required_files = [
+        "entries.bin",
+        "kana.fst",
+        "kanji.fst",
+        "romaji.fst",
+        "id.fst",
+        "gloss.fst",
+        "gloss_postings.bin",
+    ];
 
     if required_files.iter().all(|f| out_path.join(f).exists()) {
         return;

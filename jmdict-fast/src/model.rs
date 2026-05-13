@@ -7,6 +7,8 @@ pub enum MatchType {
     Prefix,
     Deinflected,
     Fuzzy,
+    /// Matched via reverse lookup in English glosses (see [`crate::Dict::lookup_gloss`]).
+    Gloss,
 }
 
 /// The search mode for a query.
@@ -45,10 +47,16 @@ pub struct LookupResult {
 /// touching the format version.
 pub const MAGIC: &[u8; 4] = b"JMDF";
 
-/// Binary format version for entries.bin. Bump whenever the on-disk layout or
-/// the serialized `Entry` struct changes — `Dict::load` rejects mismatched
-/// versions instead of attempting a deserialize that may silently succeed.
-pub const FORMAT_VERSION: u32 = 3;
+/// Binary format version for entries.bin. Bump whenever the on-disk layout,
+/// the serialized `Entry` struct, or the set of expected sibling files
+/// changes — `Dict::load` rejects mismatched versions instead of attempting a
+/// deserialize that may silently succeed.
+///
+/// History:
+/// - 3 → 4: added `gloss.fst` and `gloss_postings.bin` for English reverse
+///   lookup. `entries.bin` layout unchanged but loaders now require both new
+///   files to exist alongside it.
+pub const FORMAT_VERSION: u32 = 4;
 
 /// Dictionary data version information.
 #[derive(Debug, Clone)]

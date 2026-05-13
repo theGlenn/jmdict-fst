@@ -9,12 +9,26 @@ use std::vec;
 /// allocations.
 pub const MAX_FUZZY_DISTANCE: u32 = 4;
 
+/// Returns true when `filter` is empty, or any haystack value contains any
+/// filter substring. Matches the existing `pos` filter semantics: filters
+/// are case-sensitive substrings of the JMdict codes (`"v"` catches every
+/// verb POS, `"v1"` only ichidan).
+fn filter_passes(filter: &[String], haystack: &[String]) -> bool {
+    filter.is_empty()
+        || haystack
+            .iter()
+            .any(|h| filter.iter().any(|f| h.contains(f.as_str())))
+}
+
 /// An iterator that lazily deserializes dictionary entries from pre-sorted match candidates.
 pub struct LookupResultIter<'d> {
     dict: &'d Dict,
     candidates: vec::IntoIter<MatchCandidate>,
     common_only: bool,
     pos_filter: Vec<String>,
+    misc_filter: Vec<String>,
+    field_filter: Vec<String>,
+    dialect_filter: Vec<String>,
     limit: Option<usize>,
     yielded: usize,
 }
@@ -29,6 +43,11 @@ impl<'d> Iterator for LookupResultIter<'d> {
             }
         }
 
+        let any_sense_filter = !self.pos_filter.is_empty()
+            || !self.misc_filter.is_empty()
+            || !self.field_filter.is_empty()
+            || !self.dialect_filter.is_empty();
+
         loop {
             let mc = self.candidates.next()?;
             let entry = match self.dict.load_entry(mc.id) {
@@ -36,21 +55,23 @@ impl<'d> Iterator for LookupResultIter<'d> {
                 None => continue,
             };
 
-            if self.common_only {
-                let is_common = entry.kanji.iter().any(|k| k.common)
-                    || entry.kana.iter().any(|k| k.common);
-                if !is_common {
-                    continue;
-                }
+            if self.common_only && !entry.is_common() {
+                continue;
             }
 
-            if !self.pos_filter.is_empty() {
-                let matches_pos = entry.sense.iter().any(|s| {
-                    s.part_of_speech
-                        .iter()
-                        .any(|p| self.pos_filter.iter().any(|f| p.contains(f.as_str())))
+            // Sense-level filters are conjunctive *within* a sense: a single
+            // sense must satisfy every active filter for the entry to match.
+            // This mirrors JMdict's structure where pos/misc/field/dialect
+            // are recorded per sense, so a verb-sense + noun-sense entry
+            // won't match `pos=v` + `misc=abbr` unless one sense is both.
+            if any_sense_filter {
+                let any_match = entry.sense.iter().any(|s| {
+                    filter_passes(&self.pos_filter, &s.part_of_speech)
+                        && filter_passes(&self.misc_filter, &s.misc)
+                        && filter_passes(&self.field_filter, &s.field)
+                        && filter_passes(&self.dialect_filter, &s.dialect)
                 });
-                if !matches_pos {
+                if !any_match {
                     continue;
                 }
             }
@@ -74,6 +95,9 @@ pub struct QueryBuilder<'d> {
     mode: MatchMode,
     common_only: bool,
     pos_filter: Vec<String>,
+    misc_filter: Vec<String>,
+    field_filter: Vec<String>,
+    dialect_filter: Vec<String>,
     limit: Option<usize>,
     max_distance: u32,
 }
@@ -86,6 +110,9 @@ impl<'d> QueryBuilder<'d> {
             mode: MatchMode::Exact,
             common_only: false,
             pos_filter: Vec::new(),
+            misc_filter: Vec::new(),
+            field_filter: Vec::new(),
+            dialect_filter: Vec::new(),
             limit: None,
             max_distance: 2,
         }
@@ -106,6 +133,27 @@ impl<'d> QueryBuilder<'d> {
     /// Filter to entries with matching part_of_speech values in any SenseEntry.
     pub fn pos(mut self, pos: &[&str]) -> Self {
         self.pos_filter = pos.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
+    /// Filter to entries with any of the given JMdict `misc` codes
+    /// (e.g. `"uk"` for "usually written in kana", `"abbr"` for abbreviation).
+    pub fn misc(mut self, misc: &[&str]) -> Self {
+        self.misc_filter = misc.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
+    /// Filter to entries with any of the given JMdict `field` codes
+    /// (e.g. `"med"` for medicine, `"comp"` for computing).
+    pub fn field(mut self, field: &[&str]) -> Self {
+        self.field_filter = field.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
+    /// Filter to entries with any of the given JMdict `dialect` codes
+    /// (e.g. `"ksb"` for Kansai-ben, `"ktb"` for Kantou-ben).
+    pub fn dialect(mut self, dialect: &[&str]) -> Self {
+        self.dialect_filter = dialect.iter().map(|s| s.to_string()).collect();
         self
     }
 
@@ -146,6 +194,9 @@ impl<'d> QueryBuilder<'d> {
             candidates: candidates.into_iter(),
             common_only: self.common_only,
             pos_filter: self.pos_filter,
+            misc_filter: self.misc_filter,
+            field_filter: self.field_filter,
+            dialect_filter: self.dialect_filter,
             limit: self.limit,
             yielded: 0,
         })
@@ -159,6 +210,9 @@ pub struct BatchQueryBuilder<'d> {
     mode: MatchMode,
     common_only: bool,
     pos_filter: Vec<String>,
+    misc_filter: Vec<String>,
+    field_filter: Vec<String>,
+    dialect_filter: Vec<String>,
     limit: Option<usize>,
     max_distance: u32,
 }
@@ -171,6 +225,9 @@ impl<'d> BatchQueryBuilder<'d> {
             mode: MatchMode::Exact,
             common_only: false,
             pos_filter: Vec::new(),
+            misc_filter: Vec::new(),
+            field_filter: Vec::new(),
+            dialect_filter: Vec::new(),
             limit: None,
             max_distance: 2,
         }
@@ -194,6 +251,24 @@ impl<'d> BatchQueryBuilder<'d> {
         self
     }
 
+    /// Filter to entries with any of the given JMdict `misc` codes.
+    pub fn misc(mut self, misc: &[&str]) -> Self {
+        self.misc_filter = misc.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
+    /// Filter to entries with any of the given JMdict `field` codes.
+    pub fn field(mut self, field: &[&str]) -> Self {
+        self.field_filter = field.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
+    /// Filter to entries with any of the given JMdict `dialect` codes.
+    pub fn dialect(mut self, dialect: &[&str]) -> Self {
+        self.dialect_filter = dialect.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
     /// Cap results per term after filtering and sorting.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
@@ -211,6 +286,9 @@ impl<'d> BatchQueryBuilder<'d> {
     /// Execute the batch query and return results paired with each input term.
     pub fn execute(self) -> Result<Vec<(String, Vec<LookupResult>)>, JmdictError> {
         let pos_refs: Vec<&str> = self.pos_filter.iter().map(|s| s.as_str()).collect();
+        let misc_refs: Vec<&str> = self.misc_filter.iter().map(|s| s.as_str()).collect();
+        let field_refs: Vec<&str> = self.field_filter.iter().map(|s| s.as_str()).collect();
+        let dialect_refs: Vec<&str> = self.dialect_filter.iter().map(|s| s.as_str()).collect();
         let mut batch_results = Vec::with_capacity(self.terms.len());
         for term in &self.terms {
             let mut builder = self
@@ -219,6 +297,9 @@ impl<'d> BatchQueryBuilder<'d> {
                 .mode(self.mode.clone())
                 .common_only(self.common_only)
                 .pos(&pos_refs)
+                .misc(&misc_refs)
+                .field(&field_refs)
+                .dialect(&dialect_refs)
                 .max_distance(self.max_distance);
             if let Some(limit) = self.limit {
                 builder = builder.limit(limit);
@@ -226,5 +307,36 @@ impl<'d> BatchQueryBuilder<'d> {
             batch_results.push((term.clone(), builder.execute()?));
         }
         Ok(batch_results)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn s(v: &[&str]) -> Vec<String> {
+        v.iter().map(|x| x.to_string()).collect()
+    }
+
+    #[test]
+    fn filter_passes_empty_filter_always_matches() {
+        assert!(filter_passes(&[], &s(&[])));
+        assert!(filter_passes(&[], &s(&["v1"])));
+    }
+
+    #[test]
+    fn filter_passes_substring_match() {
+        // "v" catches every verb POS code that contains "v"
+        assert!(filter_passes(&s(&["v"]), &s(&["v1"])));
+        assert!(filter_passes(&s(&["v"]), &s(&["v5k", "vt"])));
+        // "v1" is more selective
+        assert!(filter_passes(&s(&["v1"]), &s(&["v1", "vt"])));
+        assert!(!filter_passes(&s(&["v1"]), &s(&["v5k"])));
+    }
+
+    #[test]
+    fn filter_passes_misses_when_no_haystack_value_matches() {
+        assert!(!filter_passes(&s(&["v"]), &s(&["n"])));
+        assert!(!filter_passes(&s(&["v"]), &s(&[])));
     }
 }
