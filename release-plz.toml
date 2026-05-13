@@ -29,3 +29,10 @@ release = false
 [[package]]
 name = "jmdict-fast-bolt"
 release = false
+
+# jmdict-fast-flutter produces native libraries + Dart bindings via
+# `flutter_rust_bridge_codegen`; distribution happens through pub.dev
+# (Dart package) and the host Flutter plugin, not crates.io.
+[[package]]
+name = "jmdict-fast-flutter"
+release = false
