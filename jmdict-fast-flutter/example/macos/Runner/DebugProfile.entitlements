@@ -2,8 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Sandbox disabled in the demo so the app can read the JMdict data
+	     directory from anywhere on disk. Production Flutter apps that ship
+	     the data alongside the binary should leave this `true` and either
+	     (a) read from the app bundle's `Resources/`, or (b) prompt with
+	     NSOpenPanel so the OS grants a per-file entitlement. -->
 	<key>com.apple.security.app-sandbox</key>
-	<true/>
+	<false/>
 	<key>com.apple.security.cs.allow-jit</key>
 	<true/>
 	<key>com.apple.security.network.server</key>
