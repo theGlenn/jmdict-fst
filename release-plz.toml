@@ -23,3 +23,9 @@ release = false
 [[package]]
 name = "jmdict-fast-ffi"
 release = false
+
+# jmdict-fast-bolt produces native + WASM artifacts via `boltffi pack`;
+# crates.io publication is not the relevant distribution channel.
+[[package]]
+name = "jmdict-fast-bolt"
+release = false
