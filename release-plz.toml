@@ -15,3 +15,11 @@ git_release_enable = true
 [[package]]
 name = "xtask"
 release = false
+
+# jmdict-fast-ffi is also `publish = false` until the per-generator
+# wrapper crates (uniffi/frb/bolt) land — releasing the facade on its
+# own would publish an API that no foreign-language consumer can yet
+# reach.
+[[package]]
+name = "jmdict-fast-ffi"
+release = false

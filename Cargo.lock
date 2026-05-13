@@ -1011,6 +1011,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "jmdict-fast-ffi"
+version = "0.1.2"
+dependencies = [
+ "jmdict-fast",
+]
+
+[[package]]
 name = "jmdict-traverse"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
