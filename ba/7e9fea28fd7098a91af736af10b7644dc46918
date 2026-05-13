@@ -1,0 +1,230 @@
+jmdict-fast-flutter/example/rust_builder/cargokit/LICENSE
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-42
+jmdict-fast-flutter/example/windows/flutter/generated_plugin_registrant.h
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-15
+jmdict-fast-flutter/example/ios/Runner/Info.plist
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-49
+jmdict-fast-flutter/example/rust_builder/linux/CMakeLists.txt
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-19
+jmdict-fast-flutter/example/rust_builder/macos/rust_lib_example.podspec
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-44
+jmdict-fast-flutter/example/rust/src/api/simple.rs
+  s_93695b0e6f8b2f::t_ec396e9d3849ce 6-7,9,14-21,34-35,39,49,53,56,59-63,69-78,80-82
+  s_93695b0e6f8b2f::t_2b46c8d1c0e3a8 1-5,8,10-13,22-25,31-33,36-38,40-48,50-52,54-55,57-58,64-68,79,83-95
+  s_93695b0e6f8b2f::t_212e05afe2190e 26-30,96
+jmdict-fast-flutter/example/linux/flutter/generated_plugins.cmake
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-24
+jmdict-fast-flutter/example/macos/RunnerTests/RunnerTests.swift
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-12
+jmdict-fast-flutter/example/rust_builder/cargokit/build_pod.sh
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-58
+jmdict-fast-flutter/example/rust_builder/android/settings.gradle
+  s_93695b0e6f8b2f::t_212e05afe2190e 1
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/android_environment.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-195
+jmdict-fast-flutter/example/rust_builder/windows/.gitignore
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-17
+jmdict-fast-flutter/example/rust_builder/ios/rust_lib_example.podspec
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-45
+jmdict-fast-flutter/example/windows/runner/Runner.rc
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-121
+jmdict-fast-flutter/example/windows/CMakeLists.txt
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-108
+jmdict-fast-flutter/example/ios/Flutter/Debug.xcconfig
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-2
+jmdict-fast-flutter/example/rust/src/lib.rs
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-2
+jmdict-fast-flutter/example/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-99
+jmdict-fast-flutter/example/macos/Runner.xcworkspace/contents.xcworkspacedata
+  s_93695b0e6f8b2f::t_94b9f00e7389f1 1-10
+jmdict-fast-flutter/example/android/settings.gradle.kts
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-26
+jmdict-fast-flutter/example/rust_builder/cargokit/cmake/cargokit.cmake
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-99
+jmdict-fast-flutter/example/rust_builder/cargokit/.gitignore
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-4
+jmdict-fast-flutter/example/lib/src/rust/frb_generated.web.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-26,36,43-51,55-56,63,70-80,82-83,88-89,93-96,100-101,105-125
+  s_93695b0e6f8b2f::t_bbc2b81c919384 27-35,37-42,52-54,57-62,64-69,81,84-87,90-92,97-99,102-104
+jmdict-fast-flutter/example/rust_builder/cargokit/gradle/plugin.gradle
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-179
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/options.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-309
+jmdict-fast-flutter/example/macos/Flutter/Flutter-Debug.xcconfig
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-2
+jmdict-fast-flutter/example/android/app/src/profile/AndroidManifest.xml
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-7
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/precompile_binaries.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-202
+jmdict-fast-flutter/example/rust_builder/macos/Classes/dummy_file.c
+  s_93695b0e6f8b2f::t_212e05afe2190e 1
+jmdict-fast-flutter/example/android/app/build.gradle.kts
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-44
+jmdict-fast-flutter/example/rust_builder/README.md
+  s_93695b0e6f8b2f::t_212e05afe2190e 1
+jmdict-fast-flutter/example/android/app/src/debug/AndroidManifest.xml
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-7
+jmdict-fast-flutter/example/ios/RunnerTests/RunnerTests.swift
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-12
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/build_cmake.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-40
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/build_gradle.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-49
+jmdict-fast-flutter/example/integration_test/simple_test.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-13
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/environment.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-68
+jmdict-fast-flutter/README.md
+  s_93695b0e6f8b2f::t_f32f65db1bf16d 5-13
+jmdict-fast-flutter/example/rust/Cargo.toml
+  s_93695b0e6f8b2f::t_212e05afe2190e 7-10,12-17,23-25
+  s_93695b0e6f8b2f::t_691ed8ee76ac5d 1-6
+  s_93695b0e6f8b2f::t_6737e270351739 11,18-22
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/verify_binaries.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-84
+jmdict-fast-flutter/example/rust_builder/cargokit/run_build_tool.sh
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-99
+jmdict-fast-flutter/example/web/manifest.json
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-35
+jmdict-fast-flutter/example/rust_builder/.gitignore
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-29
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/build_tool.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-8
+jmdict-fast-flutter/example/macos/Flutter/Flutter-Release.xcconfig
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-2
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/artifacts_provider.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-266
+jmdict-fast-flutter/example/rust_builder/android/build.gradle
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-56
+jmdict-fast-flutter/example/lib/src/rust/frb_generated.dart
+  s_93695b0e6f8b2f::t_bbc2b81c919384 69,81-90,100-154,157,162,165,168-169,175-176,179-202,207,211,216,219-220,226-247,249-251,256-261,265-283,287-298,318-344,352-368,389,391,395,397-414,425-440
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-68,70-80,91-99,155-156,158-161,163-164,166-167,170-174,177-178,203-206,208-210,212-215,217-218,221-225,248,252-255,262-264,284-286,299-317,345-351,369-388,390,392-394,396,415-424,441-459
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/pubspec.yaml
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-33
+jmdict-fast-flutter/example/web/index.html
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-38
+jmdict-fast-flutter/example/rust/src/frb_generated.rs
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-39,41-47,119-124,126-140,142-146,178-182,184,186-198,200,210,242-252,286-297,316-346,350-361,365-369,390-394,411-413,424-429,440,448-513
+  s_93695b0e6f8b2f::t_bbc2b81c919384 40,48-118,125,141,147-177,183,185,199,201-209,211-241,253-285,298-315,347-349,362-364,370-389,395-410,414-423,430-439,441-447
+jmdict-fast-flutter/example/windows/flutter/generated_plugin_registrant.cc
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-11
+jmdict-fast-flutter/example/lib/src/rust/api/simple.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-8
+  s_93695b0e6f8b2f::t_bbc2b81c919384 9-56
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/logging.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-52
+jmdict-fast-flutter/example/rust_builder/ios/Classes/dummy_file.c
+  s_93695b0e6f8b2f::t_212e05afe2190e 1
+jmdict-fast-flutter/example/test_driver/integration_test.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-3
+jmdict-fast-flutter/example/lib/src/rust/frb_generated.io.dart
+  s_93695b0e6f8b2f::t_bbc2b81c919384 25-33,35-40,50-52,55-60,62-67,79,82-85,88-90,95-97,100-102
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-24,34,41-49,53-54,61,68-78,80-81,86-87,91-94,98-99,103-125
+jmdict-fast-flutter/example/macos/Flutter/GeneratedPluginRegistrant.swift
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-10
+jmdict-fast-flutter/example/linux/flutter/generated_plugin_registrant.cc
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-11
+jmdict-fast-flutter/example/rust/src/api/mod.rs
+  s_93695b0e6f8b2f::t_212e05afe2190e 1
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/crate_hash.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-124
+jmdict-fast-flutter/example/rust_builder/cargokit/cmake/resolve_symlinks.ps1
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-34
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/builder.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-198
+jmdict-fast-flutter/example/ios/Flutter/Release.xcconfig
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-2
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/util.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-172
+jmdict-fast-flutter/example/macos/Runner/Configs/AppInfo.xcconfig
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-14
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/README.md
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-5
+jmdict-fast-flutter/example/.metadata
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-45
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/build_pod.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-89
+jmdict-fast-flutter/example/rust_builder/cargokit/README
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-11
+jmdict-fast-flutter/example/rust_builder/cargokit/run_build_tool.cmd
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-91
+jmdict-fast-flutter/example/android/gradle.properties
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-3
+jmdict-fast-flutter/example/android/app/src/main/AndroidManifest.xml
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-45
+jmdict-fast-flutter/example/flutter_rust_bridge.yaml
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-3
+jmdict-fast-flutter/example/linux/CMakeLists.txt
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-128
+jmdict-fast-flutter/example/android/gradle/wrapper/gradle-wrapper.properties
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-5
+jmdict-fast-flutter/example/ios/Runner.xcodeproj/project.pbxproj
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-619
+jmdict-fast-flutter/example/rust_builder/android/src/main/AndroidManifest.xml
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-3
+jmdict-fast-flutter/example/rust/.gitignore
+  s_93695b0e6f8b2f::t_212e05afe2190e 1
+jmdict-fast-flutter/example/linux/flutter/generated_plugin_registrant.h
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-15
+jmdict-fast-flutter/example/ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-101
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/analysis_options.yaml
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-34
+jmdict-fast-flutter/example/.gitignore
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-45
+jmdict-fast-flutter/example/android/build.gradle.kts
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-24
+jmdict-fast-flutter/example/linux/runner/my_application.cc
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-144
+jmdict-fast-flutter/example/lib/main.dart
+  s_93695b0e6f8b2f::t_e12bcf01fa845a 1-2,5-7,10,13-14,19-108,110-198
+  s_93695b0e6f8b2f::t_212e05afe2190e 3-4,8-9,11-12,15-18,109,199-201
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/bin/build_tool.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-8
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/cargo.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-48
+jmdict-fast-flutter/example/pubspec.yaml
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-94
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/build_tool.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-271
+jmdict-fast-flutter/example/macos/Runner.xcodeproj/project.pbxproj
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-29,32-64,69-72,74-84,88-89,91-97,99-105,107-112,127-153,155-204,207-217,219-236,238-242,244-362,424-475,477-490,492-505,507-801
+  s_93695b0e6f8b2f::t_94b9f00e7389f1 30-31,65-68,73,85-87,90,98,106,113-126,154,205-206,218,237,243,363-423,476,491,506
+jmdict-fast-flutter/example/rust_builder/android/.gitignore
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-9
+jmdict-fast-flutter/example/rust_builder/windows/CMakeLists.txt
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-20
+jmdict-fast-flutter/example/analysis_options.yaml
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-28
+jmdict-fast-flutter/example/windows/flutter/generated_plugins.cmake
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-24
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/rustup.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-136
+jmdict-fast-flutter/example/android/app/src/main/kotlin/dev/theglenn/example/MainActivity.kt
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-5
+jmdict-fast-flutter/example/rust_builder/cargokit/build_tool/lib/src/target.dart
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-140
+jmdict-fast-flutter/example/windows/runner/main.cpp
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-43
+jmdict-fast-flutter/example/rust_builder/pubspec.yaml
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-34
+jmdict-fast-flutter/example/README.md
+  s_93695b0e6f8b2f::t_212e05afe2190e 1-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "ba7e9fea28fd7098a91af736af10b7644dc46918",
+  "prompts": {},
+  "sessions": {
+    "s_93695b0e6f8b2f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "03076c23-c9e6-434b-be39-e6033b49be4f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
