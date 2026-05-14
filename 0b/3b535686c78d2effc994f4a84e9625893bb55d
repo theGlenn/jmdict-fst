@@ -1,0 +1,25 @@
+jmdict-fast/README.md
+  s_377b95b88256d5::t_603b24d9bfe081 65,69
+  s_377b95b88256d5::t_960fde643ac174 153-156,164
+  s_377b95b88256d5::t_2ed29b7a5a5a5f 157-159
+  s_377b95b88256d5::t_2448f84a20749e 90-91
+README.md
+  s_377b95b88256d5::t_ce82576ea25f9d 92-93
+  s_377b95b88256d5::t_d3af8db379d1b4 69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "0b3b535686c78d2effc994f4a84e9625893bb55d",
+  "prompts": {},
+  "sessions": {
+    "s_377b95b88256d5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "365a5e96-329d-471d-b9ce-d7aaff6521a5",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
