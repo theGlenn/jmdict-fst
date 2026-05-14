@@ -15,6 +15,15 @@ pub enum JmdictError {
     IoError(std::io::Error),
     /// Failed to deserialize entry data.
     DeserializationError,
+    /// `Dict::install*` requires an explicit cache directory on this
+    /// platform (typically iOS / Android / WASM, where the OS doesn't
+    /// expose a sensible writable default to native code). The host must
+    /// call `init_sdk_cache_dir(...)` or pass `InstallOptions::cache_dir(...)`.
+    #[cfg(feature = "install")]
+    CacheDirRequired { platform: &'static str },
+    /// A network request inside `Dict::install*` failed.
+    #[cfg(feature = "install")]
+    NetworkError(String),
 }
 
 impl JmdictError {
@@ -27,6 +36,10 @@ impl JmdictError {
             JmdictError::InvalidQuery => 4,
             JmdictError::IoError(_) => 5,
             JmdictError::DeserializationError => 6,
+            #[cfg(feature = "install")]
+            JmdictError::CacheDirRequired { .. } => 7,
+            #[cfg(feature = "install")]
+            JmdictError::NetworkError(_) => 8,
         }
     }
 }
@@ -55,6 +68,18 @@ impl fmt::Display for JmdictError {
             JmdictError::DeserializationError => {
                 write!(f, "Failed to deserialize dictionary entry data.")
             }
+            #[cfg(feature = "install")]
+            JmdictError::CacheDirRequired { platform } => {
+                write!(
+                    f,
+                    "Cache directory required on {platform}: this platform has no portable default. \
+                     Call `jmdict_fast::install::init_sdk_cache_dir(path)` from the host (e.g. via \
+                     path_provider on Flutter, Application.getCacheDir on Android, \
+                     FileManager URLs on iOS), or pass `InstallOptions::cache_dir(...)` per call."
+                )
+            }
+            #[cfg(feature = "install")]
+            JmdictError::NetworkError(msg) => write!(f, "Network error during install: {msg}"),
         }
     }
 }
