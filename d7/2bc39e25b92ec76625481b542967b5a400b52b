@@ -1,0 +1,19 @@
+jmdict-fast/examples/startup_jmdict.rs
+  s_907e2d3a255a25::t_d5f613d9df3514 12-20,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "d72bc39e25b92ec76625481b542967b5a400b52b",
+  "prompts": {},
+  "sessions": {
+    "s_907e2d3a255a25": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45fe9fad-99a5-474f-8970-eff644557bdf",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
