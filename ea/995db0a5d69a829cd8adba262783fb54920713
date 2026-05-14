@@ -1,0 +1,19 @@
+jmdict-fast-flutter/example/lib/main.dart
+  s_93695b0e6f8b2f::t_622d52c6aa1530 74-77,79-81,87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "ea995db0a5d69a829cd8adba262783fb54920713",
+  "prompts": {},
+  "sessions": {
+    "s_93695b0e6f8b2f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "03076c23-c9e6-434b-be39-e6033b49be4f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
