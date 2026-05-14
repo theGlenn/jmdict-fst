@@ -341,6 +341,9 @@ pub enum Error {
     InvalidQuery,
     Io { message: String },
     Deserialization,
+    CacheDirRequired { platform: String },
+    CacheDirAlreadySet,
+    Network { message: String },
 }
 
 impl std::fmt::Display for Error {
@@ -365,6 +368,9 @@ impl From<facade::Error> for Error {
             facade::Error::InvalidQuery => Error::InvalidQuery,
             facade::Error::Io { message } => Error::Io { message },
             facade::Error::Deserialization => Error::Deserialization,
+            facade::Error::CacheDirRequired { platform } => Error::CacheDirRequired { platform },
+            facade::Error::CacheDirAlreadySet => Error::CacheDirAlreadySet,
+            facade::Error::Network { message } => Error::Network { message },
         }
     }
 }
@@ -380,6 +386,9 @@ impl From<Error> for facade::Error {
             Error::InvalidQuery => facade::Error::InvalidQuery,
             Error::Io { message } => facade::Error::Io { message },
             Error::Deserialization => facade::Error::Deserialization,
+            Error::CacheDirRequired { platform } => facade::Error::CacheDirRequired { platform },
+            Error::CacheDirAlreadySet => facade::Error::CacheDirAlreadySet,
+            Error::Network { message } => facade::Error::Network { message },
         }
     }
 }
@@ -485,4 +494,93 @@ impl Dict {
             .map(Into::into)
             .collect()
     }
+
+    // ----- install -------------------------------------------------------
+    // BoltFFI generates a single `dict_free` per `#[export] impl` block, so
+    // these methods have to share the block above instead of getting a
+    // sibling `#[cfg(feature = "install")] #[export] impl Dict`.
+
+    pub fn install() -> Result<Self, Error> {
+        let inner = facade::Dict::install()?;
+        Ok(Self { inner })
+    }
+
+    pub fn install_from_url(url: String) -> Result<Self, Error> {
+        let inner = facade::Dict::install_from_url(url)?;
+        Ok(Self { inner })
+    }
+
+    pub fn install_from_tarball(path: String) -> Result<Self, Error> {
+        let inner = facade::Dict::install_from_tarball(path)?;
+        Ok(Self { inner })
+    }
+
+    pub fn install_with(options: InstallOptions) -> Result<Self, Error> {
+        let inner = facade::Dict::install_with(options.into())?;
+        Ok(Self { inner })
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Install surface (feature = "install")
+// ---------------------------------------------------------------------------
+
+#[data]
+#[derive(Clone)]
+pub enum InstallSource {
+    OfficialRelease,
+    Url { url: String },
+    Tarball { path: String },
+}
+
+impl Default for InstallSource {
+    fn default() -> Self {
+        InstallSource::OfficialRelease
+    }
+}
+
+impl From<InstallSource> for facade::InstallSource {
+    fn from(s: InstallSource) -> Self {
+        match s {
+            InstallSource::OfficialRelease => facade::InstallSource::OfficialRelease,
+            InstallSource::Url { url } => facade::InstallSource::Url { url },
+            InstallSource::Tarball { path } => facade::InstallSource::Tarball { path },
+        }
+    }
+}
+
+#[data]
+#[derive(Clone)]
+pub struct InstallOptions {
+    pub cache_dir: Option<String>,
+    pub source: InstallSource,
+    pub force: bool,
+}
+
+impl Default for InstallOptions {
+    fn default() -> Self {
+        Self {
+            cache_dir: None,
+            source: InstallSource::default(),
+            force: false,
+        }
+    }
+}
+
+impl From<InstallOptions> for facade::InstallOptions {
+    fn from(o: InstallOptions) -> Self {
+        facade::InstallOptions {
+            cache_dir: o.cache_dir,
+            source: o.source.into(),
+            force: o.force,
+        }
+    }
+}
+
+/// Register a process-global cache directory for `Dict::install*`. The
+/// host must call this once at startup on iOS / Android / WASM with a
+/// path obtained from a platform API.
+#[export]
+pub fn init_sdk_cache_dir(path: String) -> Result<(), Error> {
+    facade::init_sdk_cache_dir(path).map_err(Into::into)
 }

@@ -8,7 +8,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use jmdict_fast_flutter::api::Dict;
+use jmdict_fast_flutter::api::{init_sdk_cache_dir as core_init_sdk_cache_dir, Dict};
 
 /// Process-wide singleton dictionary handle. Set by `init_dictionary`,
 /// cloned (cheap — internal `Arc`) for every lookup so the mutex isn't
@@ -30,9 +30,29 @@ pub fn init_app() {
     flutter_rust_bridge::setup_default_user_utils();
 }
 
-/// Load the dictionary from `data_dir`. Must be called before any lookup.
-/// `async` so FRB runs the mmap on a worker thread — the first call
-/// touches every FST file.
+/// Register the process-global cache directory used by `install_dictionary`.
+/// The Flutter host calls this once at startup with a path from
+/// `path_provider.getApplicationSupportDirectory()`. Returns true on the
+/// first call, false on subsequent calls (idempotent — the underlying
+/// `init_sdk_cache_dir` is one-shot).
+#[flutter_rust_bridge::frb(sync)]
+pub fn init_cache_dir(path: String) -> bool {
+    core_init_sdk_cache_dir(path).is_ok()
+}
+
+/// Download + extract the official release tarball into the registered
+/// cache directory (or reuse a warm cache), then load the dictionary.
+/// First-run downloads ~21 MB; subsequent runs are mmap-only.
+pub async fn install_dictionary() -> Result<u64, String> {
+    let dict = Dict::install().await.map_err(|e| e.to_string())?;
+    let count = dict.entry_count();
+    *DICT.lock().unwrap() = Some(Arc::new(dict));
+    Ok(count)
+}
+
+/// Load from a pre-existing data directory. Still useful for power-user
+/// flows ("I already ran cargo xtask generate; load from there") and for
+/// the test suite — but `install_dictionary` is the default path.
 pub async fn init_dictionary(data_dir: String) -> Result<u64, String> {
     let dict = Dict::load(data_dir).await.map_err(|e| e.to_string())?;
     let count = dict.entry_count();

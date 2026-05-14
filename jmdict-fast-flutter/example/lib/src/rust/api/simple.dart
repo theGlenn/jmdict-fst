@@ -8,9 +8,23 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `handle`, `into_demo_hit`
 
-/// Load the dictionary from `data_dir`. Must be called before any lookup.
-/// `async` so FRB runs the mmap on a worker thread — the first call
-/// touches every FST file.
+/// Register the process-global cache directory used by `install_dictionary`.
+/// The Flutter host calls this once at startup with a path from
+/// `path_provider.getApplicationSupportDirectory()`. Returns true on the
+/// first call, false on subsequent calls (idempotent — the underlying
+/// `init_sdk_cache_dir` is one-shot).
+bool initCacheDir({required String path}) =>
+    RustLib.instance.api.crateApiSimpleInitCacheDir(path: path);
+
+/// Download + extract the official release tarball into the registered
+/// cache directory (or reuse a warm cache), then load the dictionary.
+/// First-run downloads ~21 MB; subsequent runs are mmap-only.
+Future<BigInt> installDictionary() =>
+    RustLib.instance.api.crateApiSimpleInstallDictionary();
+
+/// Load from a pre-existing data directory. Still useful for power-user
+/// flows ("I already ran cargo xtask generate; load from there") and for
+/// the test suite — but `install_dictionary` is the default path.
 Future<BigInt> initDictionary({required String dataDir}) =>
     RustLib.instance.api.crateApiSimpleInitDictionary(dataDir: dataDir);
 

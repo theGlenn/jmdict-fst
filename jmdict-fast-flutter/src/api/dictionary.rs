@@ -3,6 +3,7 @@ use std::sync::Arc;
 use jmdict_fast_ffi as facade;
 
 use super::error::Error;
+use super::install::InstallOptions;
 use super::model::{
     BatchResult, DataVersion, Entry, LookupResult, QueryOptions, Xref,
 };
@@ -123,5 +124,35 @@ impl Dict {
             .into_iter()
             .map(Into::into)
             .collect()
+    }
+
+    // ----- install -------------------------------------------------------
+    //
+    // All install entry points are `async`: they do HTTP and filesystem
+    // I/O whose worst case (cold download on a slow connection) easily
+    // exceeds a frame budget. FRB offloads `async fn` to a worker thread,
+    // so the Flutter UI isolate stays responsive.
+
+    /// Download the official release tarball into the platform cache
+    /// (via `init_sdk_cache_dir` or `InstallOptions.cacheDir`) and load
+    /// it. No-op on warm cache.
+    pub async fn install() -> Result<Self, Error> {
+        let inner = facade::Dict::install()?;
+        Ok(Self { inner })
+    }
+
+    pub async fn install_from_url(url: String) -> Result<Self, Error> {
+        let inner = facade::Dict::install_from_url(url)?;
+        Ok(Self { inner })
+    }
+
+    pub async fn install_from_tarball(path: String) -> Result<Self, Error> {
+        let inner = facade::Dict::install_from_tarball(path)?;
+        Ok(Self { inner })
+    }
+
+    pub async fn install_with(options: InstallOptions) -> Result<Self, Error> {
+        let inner = facade::Dict::install_with(options.into())?;
+        Ok(Self { inner })
     }
 }

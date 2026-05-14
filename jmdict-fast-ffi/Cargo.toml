@@ -10,5 +10,12 @@ keywords = ["japanese", "dictionary", "jmdict", "ffi", "uniffi"]
 categories = ["text-processing", "internationalization"]
 publish = false
 
+[features]
+# Forwards to `jmdict-fast/install` so the facade exposes the same
+# download/local-tarball/cache-dir surface to FFI consumers. No
+# additional deps live in this crate — everything lives behind the
+# `install` feature on the underlying engine.
+install = ["jmdict-fast/install"]
+
 [dependencies]
 jmdict-fast = { path = "../jmdict-fast", version = "0.1.3" }

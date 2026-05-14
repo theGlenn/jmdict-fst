@@ -15,8 +15,10 @@
 
 pub mod dictionary;
 pub mod error;
+pub mod install;
 pub mod model;
 
 pub use dictionary::*;
 pub use error::*;
+pub use install::*;
 pub use model::*;

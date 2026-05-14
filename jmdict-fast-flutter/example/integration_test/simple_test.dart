@@ -12,7 +12,7 @@ void main() {
     await tester.pumpWidget(const DemoApp());
     // App bar reflects the demo, not the FRB quickstart template.
     expect(find.text('jmdict-fast-flutter demo'), findsOneWidget);
-    // Before a dictionary is loaded, the load panel's button is visible.
-    expect(find.text('Load dictionary'), findsOneWidget);
+    // Before a dictionary is loaded, the install panel's button is visible.
+    expect(find.text('Install dictionary'), findsOneWidget);
   });
 }
