@@ -1,0 +1,19 @@
+release-plz.toml
+  s_e5745ca407912d::t_ab711dd85873e8 12-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "bd191e198ae4422984b1402ee5160a06bc752720",
+  "prompts": {},
+  "sessions": {
+    "s_e5745ca407912d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "04ad7dc4-1b77-43cd-aed7-9b868482f13e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
