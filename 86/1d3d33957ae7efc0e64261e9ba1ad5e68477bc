@@ -1,0 +1,20 @@
+README.md
+  s_377b95b88256d5::t_35ab3f71817491 15
+  s_377b95b88256d5::t_e497e2360dae31 10-14,16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "861d3d33957ae7efc0e64261e9ba1ad5e68477bc",
+  "prompts": {},
+  "sessions": {
+    "s_377b95b88256d5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "365a5e96-329d-471d-b9ce-d7aaff6521a5",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
