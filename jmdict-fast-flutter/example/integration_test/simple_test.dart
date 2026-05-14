@@ -6,8 +6,13 @@ import 'package:integration_test/integration_test.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async => await RustLib.init());
-  testWidgets('Can call rust function', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
-    expect(find.textContaining('Result: `Hello, Tom!`'), findsOneWidget);
+  testWidgets('Demo app boots and renders the load panel', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const DemoApp());
+    // App bar reflects the demo, not the FRB quickstart template.
+    expect(find.text('jmdict-fast-flutter demo'), findsOneWidget);
+    // Before a dictionary is loaded, the load panel's button is visible.
+    expect(find.text('Load dictionary'), findsOneWidget);
   });
 }
