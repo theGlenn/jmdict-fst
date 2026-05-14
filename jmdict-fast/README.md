@@ -1,44 +1,72 @@
-# jmdict-fast
+# 🚀 jmdict-fast
 
-> **Blazing-fast Japanese dictionary engine** powered by FST indexing
+> **Blazing-fast Japanese dictionary engine, powered by FST indexing.**
 
-[![crates.io](https://img.shields.io/crates/v/jmdict-fast.svg)](https://crates.io/crates/jmdict-fast)
+[![jmdict-fast on crates.io](https://img.shields.io/crates/v/jmdict-fast.svg?label=jmdict-fast)](https://crates.io/crates/jmdict-fast)
 [![docs.rs](https://docs.rs/jmdict-fast/badge.svg)](https://docs.rs/jmdict-fast)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> **Note:** This crate uses [bunpo](https://github.com/theGlenn/jmdict-fst/tree/main/bunpo) for Japanese conjugation handling. Both crates are part of the same monorepo but are published separately to crates.io.
+A Rust library that turns the official **JMdict** dataset into memory-mapped FST indexes and serves lookups in **~4 µs**. Designed for Japanese readers, IMEs, language-learning tools, and anything that needs to look up words *fast*.
+
+> **Note:** This crate uses [bunpo](https://github.com/theGlenn/jmdict-fst/tree/main/bunpo) for Japanese conjugation handling. Both crates live in the same monorepo but are published separately to crates.io.
 
 ---
 
-## Features
+## ✨ Features
 
-- **O(log n) lookups** across kanji, kana, and romaji
-- **Memory-mapped** FST indexes with zero-copy access (runtime `load`) — the
-  kernel pages data in on demand, with no upfront read into a `Vec`
-- **Deinflection** support via [bunpo](https://crates.io/crates/bunpo)
-- **Two loading modes:** embedded (compile-time) or runtime (filesystem)
-- **Full JMdict data** including antonyms, dialects, field tags, and cross-references
-- **Lookup by JMdict ID** plus a sequential iterator over every entry
+- **⚡ Instant lookups** — O(log n) exact matching across kanji, kana, and romaji (~4 µs per lookup)
+- **🔎 Multimodal search** — exact, prefix, fuzzy (edit-distance), and English-gloss reverse lookup
+- **🪶 Memory-mapped** — zero-copy access on `load`; the kernel pages data in on demand, no upfront read into a `Vec`, no allocations during lookup
+- **🧠 Deinflection-aware** — finds `食べる` from `食べます` via [bunpo](https://crates.io/crates/bunpo)
+- **📦 Two loading modes** — embedded (compile-time) or runtime-loaded (filesystem)
+- **🏷️ Full JMdict data** — antonyms, dialects, field tags, cross-references, JMdict IDs
+- **🎯 Filterable queries** — by part-of-speech, misc tag, field, dialect, common-only, with limits
+- **🆔 Stable lookup by JMdict ID** plus a sequential iterator over every entry
 
 ---
 
-## Getting Started
+## 🏎️ Performance at a Glance
+
+| Metric            | Value                          |
+|-------------------|--------------------------------|
+| **Index size**    | ~888 KB (FSTs)                 |
+| **Data size**     | ~16 MB binary blob             |
+| **Lookup speed**  | O(log n), ~4 µs                |
+| **Memory usage**  | Memory-mapped, zero allocations |
+
+### Side-by-side: `jmdict-fast` vs [`jmdict`](https://crates.io/crates/jmdict)
+
+The bundled Criterion bench ([`benches/lookup_word.rs`](./benches/lookup_word.rs)) looks up `猫` against both crates on the same machine:
+
+| Crate                     | Approach                                  | Time per lookup | Relative |
+|---------------------------|-------------------------------------------|-----------------|----------|
+| **`jmdict-fast` (this)**  | FST index + memory-mapped binary blob     | **~4.06 µs**    | **1×**   |
+| [`jmdict`](https://crates.io/crates/jmdict) v2.x | Linear filter over `entries()` iterator | ~511.96 µs      | ~125× slower |
+
+That's the gap between an O(log n) FST walk and an O(n) full-table scan — the bigger your dictionary, the wider the gap gets. Run `cargo bench -p jmdict-fast` to reproduce on your hardware.
+
+> Comparisons are deliberately scoped to crates that solve the same problem (in-process JMdict lookup from Rust). If you're aware of another crate worth benching against, please open an issue or PR.
+
+---
+
+## 🚀 Getting Started
 
 ### 1. Generate or download dictionary data
 
 Data files are **not** included in the crate. Generate them or download pre-built artifacts:
 
 ```bash
-# Option A: Generate from source (requires network access)
+# Option A — generate from source (requires network access)
 cargo xtask generate
 
-# Option B: Download pre-built data from GitHub Releases
+# Option B — download pre-built data from GitHub Releases
 # (asset name encodes JMdict + format versions; check Releases for current values)
 mkdir -p dist
-curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt3.tar.gz | tar xz -C dist/
+curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt4.tar.gz \
+  | tar xz -C dist/
 ```
 
-This produces five files in `dist/`: `kana.fst`, `kanji.fst`, `romaji.fst`, `id.fst`, `entries.bin`.
+This produces seven files in `dist/`: `kana.fst`, `kanji.fst`, `romaji.fst`, `id.fst`, `gloss.fst`, `entries.bin`, and `gloss_postings.bin`.
 
 ### 2. Add the dependency
 
@@ -59,16 +87,19 @@ fn main() -> anyhow::Result<()> {
     let dict = Dict::load_default()?;
 
     // Exact lookup
-    let results = dict.lookup_exact("猫");
-    for entry in &results {
+    for result in dict.lookup_exact("猫") {
+        let entry = &result.entry;
         println!("{}: {}", entry.kanji[0].text, entry.sense[0].gloss[0].text);
     }
 
     // Prefix search
-    let results = dict.lookup_partial("こんに");
+    let _ = dict.lookup_partial("こんに");
 
     // With deinflection (finds 食べる from 食べます)
-    let results = dict.lookup_exact_with_deinflection("食べます");
+    let _ = dict.lookup_exact_with_deinflection("食べます");
+
+    // Reverse lookup by English gloss (multi-token = AND)
+    let _ = dict.lookup_gloss("to eat");
 
     Ok(())
 }
@@ -84,114 +115,87 @@ jmdict-fast = { version = "0.1.1", features = ["embedded"] }
 ```
 
 ```rust
-let dict = Dict::load_embedded()?;
+let dict = jmdict_fast::Dict::load_embedded()?;
 ```
 
 > Requires data files in `dist/` when building. Run `cargo xtask generate` first.
 
 ---
 
-## Loading behavior
+## 🔧 Loading Behavior
 
 `Dict::load_default()` tries sources in order:
 
 1. **Embedded data** (if `embedded` feature is enabled)
-2. **`JMDICT_DATA` env var** — path to a directory with data files
+2. **`JMDICT_DATA`** env var — path to a directory with data files
 3. **`dist/`** relative to the current directory
 4. **`dist/`** relative to the workspace root
 
-You can also load from an explicit path:
+Or load from an explicit path:
 
 ```rust
-let dict = Dict::load("/path/to/data")?;
+let dict = jmdict_fast::Dict::load("/path/to/data")?;
 ```
 
----
-
-## Environment Variables
-
 | Variable | Description |
-|----------|-------------|
-| `JMDICT_DATA` | Path to directory containing FST and entries.bin files |
-
-## Feature Flags
+|---|---|
+| `JMDICT_DATA` | Path to directory containing FST and `entries.bin` files |
 
 | Feature | Description |
-|---------|-------------|
+|---|---|
 | `embedded` | Bake dictionary data into the binary via `include_bytes!` |
 
 ---
 
-## Data Generation (`cargo xtask generate`)
-
-The `xtask` crate handles downloading JMdict and building the FST indexes:
-
-```bash
-# Generate to default output (dist/)
-cargo xtask generate
-
-# Generate to a custom directory
-cargo xtask generate --output /path/to/output
-```
-
-Pre-built data is also attached to [GitHub Releases](https://github.com/theGlenn/jmdict-fst/releases) as `jmdict-data.tar.gz`.
-
----
-
-## Data Structure
+## 📊 Data Structure
 
 ```
-kana.fst     kanji.fst     romaji.fst    id.fst
-   │              │              │            │
-   └──────────────┼──────────────┘            │
-                  ▼                           │
-            entries.bin ◄─────────────────────┘
-         (postcard-serialized entries
-          with version header)
+kana.fst   kanji.fst   romaji.fst   id.fst        gloss.fst
+   │           │            │          │              │
+   └───────────┼────────────┘          │              ▼
+               ▼                       │      gloss_postings.bin
+         entries.bin ◄─────────────────┘     (per token: u32 count
+      (postcard-serialized entries           followed by count × u64
+       with version header)                   entry ids, little-endian)
 ```
 
-- **FST maps** — sorted key→entry-id indexes for each writing system
+- **FST maps** — sorted key→entry-id indexes for each writing system, plus a JMdict-ID index
 - **entries.bin** — versioned binary blob (magic `JMDF` + format version + postcard-serialized entries)
+- **gloss.fst + gloss_postings.bin** — English-gloss reverse-lookup index: tokens → byte offset into a postings file containing the matching entry-id sets
 
 ---
 
-## Migration from embedded-only API
+## 🔍 How It Works
 
-Previous versions embedded dictionary data via `include_bytes!` in `build.rs`. The new architecture:
-
-1. **Data generation** moved to `cargo xtask generate` (separate from compilation)
-2. **Embedded mode** is now opt-in via the `embedded` feature flag
-3. **Runtime loading** is the default — set `JMDICT_DATA` or place files in `dist/`
-4. `Dict::load_default()` cascades: embedded → env var → filesystem
-
-If you were using `Dict::load_default()` before, it continues to work — just generate data first with `cargo xtask generate`.
+1. **Build phase** — `cargo xtask generate` downloads JMdict, normalizes it, and emits the four FSTs + `entries.bin`.
+2. **Runtime phase** — `Dict::load` memory-maps the FSTs, and lookups walk the FST to find an entry offset, then deserialize a single entry from `entries.bin`. No global parse, no allocations on the hot path.
 
 ---
 
-## API Reference
+## 📚 API Reference
 
 ### Loading
 
-- `Dict::load(path)` — Load from a specific directory
-- `Dict::load_default()` — Auto-detect data location
-- `Dict::load_embedded()` — Load compile-time embedded data (requires `embedded` feature)
+- `Dict::load(path)` — load from a specific directory
+- `Dict::load_default()` — auto-detect data location
+- `Dict::load_embedded()` — load compile-time embedded data (requires `embedded` feature)
 
 ### Lookups
 
-- `dict.lookup_exact(term)` — Exact match across kana, kanji, romaji
-- `dict.lookup_partial(prefix)` — Prefix search
-- `dict.lookup_exact_with_deinflection(term)` — Exact match with verb/adjective deinflection
-- `dict.lookup_by_id(jmdict_id)` — Fetch by stable JMdict ID (string)
-- `dict.lookup_gloss("to eat")` — Reverse lookup by English gloss (multi-token = AND)
-- `dict.resolve_xref(&xref)` — Walk `SenseEntry::related` / `antonym` to entries
+- `dict.lookup_exact(term)` — exact match across kana, kanji, romaji
+- `dict.lookup_partial(prefix)` — prefix search
+- `dict.lookup_exact_with_deinflection(term)` — exact match with verb/adjective deinflection
+- `dict.lookup_by_id(jmdict_id)` — fetch by stable JMdict ID (string)
+- `dict.lookup_gloss("to eat")` — reverse lookup by English gloss (multi-token = AND)
+- `dict.resolve_xref(&xref)` — walk `SenseEntry::related` / `antonym` to entries
 - `dict.lookup(term)` — `QueryBuilder` with `mode`, `common_only`, `pos`, `misc`, `field`, `dialect`, `limit`, `max_distance`
-- `dict.lookup_batch(terms)` — Same builder, multiple terms at once
+- `dict.lookup_batch(terms)` — same builder, multiple terms at once
 
 ### Browsing
 
-- `dict.get(seq_id)` — Fetch by sequential (internal) index `0..entry_count()`
-- `dict.iter_entries()` — Lazy iterator over every entry
-- `dict.entry_count()` / `dict.version()` — Dictionary metadata
+- `dict.get(seq_id)` — fetch by sequential (internal) index `0..entry_count()`
+- `dict.iter_entries()` — lazy iterator over every entry
+- `dict.entry_count()` / `dict.version()` — dictionary metadata
 
 ### Entry helpers
 
@@ -205,7 +209,7 @@ entry.glosses("eng");    // Iterator<Item = &str>
 entry.parts_of_speech(); // Vec<&str>, distinct, first-seen order
 ```
 
-### Entry Structure
+### Entry structure
 
 ```rust
 pub struct Entry {
@@ -216,26 +220,24 @@ pub struct Entry {
 }
 ```
 
-See [docs.rs](https://docs.rs/jmdict-fast) for full API documentation.
+See [docs.rs](https://docs.rs/jmdict-fast) for the full API.
 
 ---
 
-## Performance
+## 🤝 Contributing
 
-| Metric           | Value                |
-|------------------|---------------------|
-| **Index Size**   | ~888KB (FSTs)       |
-| **Data Size**    | ~16MB binary blob   |
-| **Lookup Speed** | O(log n), ~4 us     |
+Issues, PRs, and ideas welcome — especially around new lookup modes, query ergonomics, and data quality. Fork, branch, test, PR.
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE).
+
+## 🙏 Acknowledgments
+
+- **JMdict** — the source dictionary data. See the [EDRDG dictionary licence statement](https://www.edrdg.org/edrdg/licence.html).
+- **[fst](https://crates.io/crates/fst)** — the underlying finite-state-transducer crate.
+- **[10ten Japanese Reader](https://github.com/birchill/10ten-ja-reader)** — for their deinflector implementation.
 
 ---
 
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
-## Acknowledgments
-
-- **JMdict** — The source dictionary data - see [EDRDG DICTIONARY LICENCE STATEMENT](https://www.edrdg.org/edrdg/licence.html)
-- **FST crate** — Fast finite state transducer implementation
-- [10ten Japanese Reader](https://github.com/birchill/10ten-ja-reader) for their deinflector implementation
+**Built with ❤️ and Rust** 🦀
