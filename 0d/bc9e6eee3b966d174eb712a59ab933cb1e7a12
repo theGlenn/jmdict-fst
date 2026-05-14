@@ -1,0 +1,67 @@
+jmdict-fast-flutter/src/api/dictionary.rs
+  s_e5745ca407912d::t_b9b2b678098200 6
+  s_e5745ca407912d::t_4b017543babc36 128-157
+jmdict-fast-ffi/Cargo.toml
+  s_e5745ca407912d::t_41f0e3acdd9c19 13-19
+jmdict-fast-flutter/example/linux/flutter/generated_plugins.cmake
+  s_e5745ca407912d::t_b8b3042e4dd81e 9
+jmdict-fast-flutter/example/windows/flutter/generated_plugins.cmake
+  s_e5745ca407912d::t_b8b3042e4dd81e 9
+jmdict-fast-flutter/example/lib/main.dart
+  s_e5745ca407912d::t_dacc7296c50165 4,10,12-17
+  s_e5745ca407912d::t_5da399f4cb52c8 53,59-63,68,70
+  s_e5745ca407912d::t_f8c68faef67a06 132,135-137,139-149
+jmdict-fast-flutter/Cargo.toml
+  s_e5745ca407912d::t_e82b52ebe1665b 19-25
+jmdict-fast-flutter/example/integration_test/simple_test.dart
+  s_e5745ca407912d::t_3bac6008d1021d 15-16
+jmdict-fast-flutter/src/api/error.rs
+  s_e5745ca407912d::t_f2085689739f9d 46-48,64-66
+  s_e5745ca407912d::t_d09ea5811719f1 13-21
+jmdict-fast-flutter/example/rust/src/frb_generated.rs
+  s_e5745ca407912d::t_886211b374536b 40,82-111,148-182,413-415,428-431
+jmdict-fast-bolt/Cargo.toml
+  s_e5745ca407912d::t_114b8c04e581cb 20-27
+jmdict-fast-flutter/example/macos/Flutter/GeneratedPluginRegistrant.swift
+  s_e5745ca407912d::t_b8b3042e4dd81e 8,11
+jmdict-fast-flutter/example/lib/src/rust/api/simple.dart
+  s_e5745ca407912d::t_886211b374536b 11-27
+jmdict-fast-ffi/src/lib.rs
+  s_e5745ca407912d::t_5dd7f01af2cbfd 57-74
+  s_e5745ca407912d::t_cbbe3c0a5e835e 87-92
+  s_e5745ca407912d::t_73f4828e200df7 143-150
+  s_e5745ca407912d::t_b005b2b2a1c0ad 395-488
+  s_e5745ca407912d::t_b3714512f8caf2 112-125
+jmdict-fast-flutter/src/api/install.rs
+  s_e5745ca407912d::t_862f91d4cb5aa1 1-69
+jmdict-fast-flutter/example/rust/src/api/simple.rs
+  s_e5745ca407912d::t_699e42e53c0536 11
+  s_e5745ca407912d::t_1ee61698d29e23 33-55
+jmdict-fast-bolt/src/lib.rs
+  s_e5745ca407912d::t_56f9865cac0beb 344-346
+  s_e5745ca407912d::t_ae262f08bb5196 371-373,389-391
+  s_e5745ca407912d::t_0008ad56ff7b14 497-521
+  s_e5745ca407912d::t_aa536e1bd5119f 523-585
+jmdict-fast-flutter/example/pubspec.yaml
+  s_e5745ca407912d::t_40909b35076c27 40-43
+jmdict-fast-flutter/example/lib/src/rust/frb_generated.dart
+  s_e5745ca407912d::t_886211b374536b 69,82-83,86-87,132-154,165,183-209,216,239,265,290
+jmdict-fast-flutter/src/api/mod.rs
+  s_e5745ca407912d::t_8c713a4eb04f32 18,23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "0dbc9e6eee3b966d174eb712a59ab933cb1e7a12",
+  "prompts": {},
+  "sessions": {
+    "s_e5745ca407912d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "04ad7dc4-1b77-43cd-aed7-9b868482f13e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
