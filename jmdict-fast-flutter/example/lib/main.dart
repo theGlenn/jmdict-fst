@@ -1,12 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'src/rust/api/simple.dart';
 import 'src/rust/frb_generated.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
+  // Register a writable cache dir for `Dict::install*`. The native side
+  // can't compute this on iOS/Android (sandboxed), so the host supplies
+  // it once at startup. On desktop this still works — supplying it is
+  // strictly safer than letting the Rust default resolver pick.
+  final dir = await getApplicationSupportDirectory();
+  initCacheDir(path: dir.path);
   runApp(const DemoApp());
 }
 
@@ -33,13 +41,6 @@ class HomePage extends StatefulWidget {
 enum _Mode { exact, partial, gloss }
 
 class _HomePageState extends State<HomePage> {
-  // Pre-filled with the repo's data directory so the demo "just runs" when
-  // launched from the example folder. macOS desktop binds CWD to the bundle,
-  // so an absolute path is friendlier than a relative one — adjust to match
-  // your checkout.
-  final _dataDirCtl = TextEditingController(
-    text: '../../dist',
-  );
   final _queryCtl = TextEditingController(text: '猫');
 
   BigInt? _entryCount;
@@ -49,19 +50,24 @@ class _HomePageState extends State<HomePage> {
   Duration? _lastLookup;
   _Mode _mode = _Mode.exact;
 
-  Future<void> _load() async {
+  Future<void> _install() async {
     setState(() {
       _loading = true;
       _loadError = null;
     });
     try {
-      final count = await initDictionary(dataDir: _dataDirCtl.text);
+      // First run downloads ~21 MB from the GitHub release matching this
+      // build's crate / JMdict / format version. Cached after that, so the
+      // second launch is mmap-only.
+      final count = await installDictionary();
+      if (!mounted) return;
       setState(() {
         _entryCount = count;
         _loading = false;
       });
-      _runQuery(); // run the pre-filled query right away
+      _runQuery();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loadError = '$e';
         _loading = false;
@@ -123,21 +129,24 @@ class _HomePageState extends State<HomePage> {
   Widget _buildLoadPanel() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text(
-          'Path to the JMdict data directory (the folder that contains '
-          'entries.bin, kana.fst, kanji.fst, romaji.fst, id.fst, gloss.fst, '
-          'gloss_postings.bin):',
+          'First run downloads ~21 MB of JMdict data into the app cache.\n'
+          'Cached afterwards — subsequent launches are mmap-only.',
+          textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _dataDirCtl,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: _loading ? null : _load,
-          child: Text(_loading ? 'Loading…' : 'Load dictionary'),
+        const SizedBox(height: 24),
+        FilledButton.icon(
+          onPressed: _loading ? null : _install,
+          icon: _loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.download),
+          label: Text(_loading ? 'Installing…' : 'Install dictionary'),
         ),
         if (_loadError != null) ...[
           const SizedBox(height: 16),

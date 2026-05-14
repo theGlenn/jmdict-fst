@@ -10,6 +10,15 @@ pub enum Error {
     InvalidQuery,
     Io { message: String },
     Deserialization,
+    /// `Dict::install*` needs a cache directory and the host hasn't
+    /// registered one. `platform` carries the target_os string so the
+    /// Dart side can branch on "ios" / "android" / "wasm" without parsing
+    /// the message.
+    CacheDirRequired { platform: String },
+    /// `init_sdk_cache_dir` was called twice; the cache root is one-shot.
+    CacheDirAlreadySet,
+    /// Download or extract failed (timeout, non-2xx, oversize, …).
+    Network { message: String },
 }
 
 impl std::fmt::Display for Error {
@@ -34,6 +43,9 @@ impl From<facade::Error> for Error {
             facade::Error::InvalidQuery => Error::InvalidQuery,
             facade::Error::Io { message } => Error::Io { message },
             facade::Error::Deserialization => Error::Deserialization,
+            facade::Error::CacheDirRequired { platform } => Error::CacheDirRequired { platform },
+            facade::Error::CacheDirAlreadySet => Error::CacheDirAlreadySet,
+            facade::Error::Network { message } => Error::Network { message },
         }
     }
 }
@@ -49,6 +61,9 @@ impl From<Error> for facade::Error {
             Error::InvalidQuery => facade::Error::InvalidQuery,
             Error::Io { message } => facade::Error::Io { message },
             Error::Deserialization => facade::Error::Deserialization,
+            Error::CacheDirRequired { platform } => facade::Error::CacheDirRequired { platform },
+            Error::CacheDirAlreadySet => facade::Error::CacheDirAlreadySet,
+            Error::Network { message } => facade::Error::Network { message },
         }
     }
 }

@@ -54,6 +54,24 @@ pub enum Error {
     Io { message: String },
     /// Failed to deserialize entry data.
     Deserialization,
+    /// `Dict::install*` needs a cache directory on this platform (iOS,
+    /// Android, WASM) and the host hasn't registered one via
+    /// `init_sdk_cache_dir` / `InstallOptions::cache_dir`.
+    ///
+    /// `platform` is the target_os string ("ios", "android", "wasm") so
+    /// foreign-language callers can branch on it without parsing the
+    /// Display message. `&'static str` → `String` for FFI safety.
+    #[cfg(feature = "install")]
+    CacheDirRequired { platform: String },
+    /// `init_sdk_cache_dir` was called twice. The cache root is process-
+    /// global and first-set-wins; subsequent calls are rejected rather
+    /// than silently leaving older `Dict`s pointing at a stale root.
+    #[cfg(feature = "install")]
+    CacheDirAlreadySet,
+    /// A network request inside `Dict::install*` failed (timeout, DNS,
+    /// non-2xx status, oversize body, …).
+    #[cfg(feature = "install")]
+    Network { message: String },
 }
 
 impl Error {
@@ -66,6 +84,12 @@ impl Error {
             Error::InvalidQuery => 4,
             Error::Io { .. } => 5,
             Error::Deserialization => 6,
+            #[cfg(feature = "install")]
+            Error::CacheDirRequired { .. } => 7,
+            #[cfg(feature = "install")]
+            Error::Network { .. } => 8,
+            #[cfg(feature = "install")]
+            Error::CacheDirAlreadySet => 9,
         }
     }
 }
@@ -85,6 +109,20 @@ impl std::fmt::Display for Error {
             Error::InvalidQuery => write!(f, "The search query is invalid."),
             Error::Io { message } => write!(f, "I/O error: {message}"),
             Error::Deserialization => write!(f, "Failed to deserialize dictionary entry data."),
+            #[cfg(feature = "install")]
+            Error::CacheDirRequired { platform } => write!(
+                f,
+                "Cache directory required on {platform}: call init_sdk_cache_dir(path) from the host \
+                 (e.g. path_provider on Flutter, FileManager on iOS, Context.getCacheDir on Android), \
+                 or pass InstallOptions::cache_dir(path) per call."
+            ),
+            #[cfg(feature = "install")]
+            Error::CacheDirAlreadySet => write!(
+                f,
+                "init_sdk_cache_dir was already called for this process; the cache root is one-shot."
+            ),
+            #[cfg(feature = "install")]
+            Error::Network { message } => write!(f, "Network error during install: {message}"),
         }
     }
 }
@@ -102,6 +140,14 @@ impl From<core::JmdictError> for Error {
             core::JmdictError::InvalidQuery => Error::InvalidQuery,
             core::JmdictError::IoError(e) => Error::Io { message: e.to_string() },
             core::JmdictError::DeserializationError => Error::Deserialization,
+            #[cfg(feature = "install")]
+            core::JmdictError::CacheDirRequired { platform } => Error::CacheDirRequired {
+                platform: platform.to_string(),
+            },
+            #[cfg(feature = "install")]
+            core::JmdictError::CacheDirAlreadySet => Error::CacheDirAlreadySet,
+            #[cfg(feature = "install")]
+            core::JmdictError::NetworkError(message) => Error::Network { message },
         }
     }
 }
@@ -344,6 +390,100 @@ impl Dict {
         let end = start.saturating_add(count).min(total);
         (start..end).filter_map(|i| self.inner.get(i)).collect()
     }
+}
+
+// ---------------------------------------------------------------------------
+// Install surface (feature = "install")
+// ---------------------------------------------------------------------------
+
+/// Source of the install bytes. Mirrors `core::install::InstallSource` but
+/// lives here so FFI generators can describe it without crossing crate
+/// boundaries. Strings (not `PathBuf`) keep the type FFI-safe.
+#[cfg(feature = "install")]
+#[derive(Debug, Clone)]
+pub enum InstallSource {
+    /// The GitHub release tarball matching this build's crate / JMdict /
+    /// format versions.
+    OfficialRelease,
+    /// Any `.tar.gz` reachable over HTTPS.
+    Url { url: String },
+    /// A `.tar.gz` already on the local filesystem (path as string).
+    Tarball { path: String },
+}
+
+#[cfg(feature = "install")]
+impl Default for InstallSource {
+    fn default() -> Self {
+        InstallSource::OfficialRelease
+    }
+}
+
+/// Options for [`Dict::install_with`]. POD record, all fields optional —
+/// FFI callers populate it instead of chaining builder setters.
+#[cfg(feature = "install")]
+#[derive(Debug, Clone, Default)]
+pub struct InstallOptions {
+    /// Per-call cache directory. Wins over `init_sdk_cache_dir` and the
+    /// platform default. `None` falls back to the resolver chain.
+    pub cache_dir: Option<String>,
+    pub source: InstallSource,
+    /// Re-extract even when the cache appears complete (recovers from a
+    /// stale or partially-corrupted install).
+    pub force: bool,
+}
+
+#[cfg(feature = "install")]
+impl Dict {
+    /// Download the official release tarball into the platform cache and
+    /// load it. No-op on a warm cache.
+    pub fn install() -> Result<Arc<Self>, Error> {
+        Self::install_with(InstallOptions::default())
+    }
+
+    /// Download an arbitrary tarball URL and load it.
+    pub fn install_from_url(url: String) -> Result<Arc<Self>, Error> {
+        Self::install_with(InstallOptions {
+            source: InstallSource::Url { url },
+            ..Default::default()
+        })
+    }
+
+    /// Extract a local `.tar.gz` and load it.
+    pub fn install_from_tarball(path: String) -> Result<Arc<Self>, Error> {
+        Self::install_with(InstallOptions {
+            source: InstallSource::Tarball { path },
+            ..Default::default()
+        })
+    }
+
+    /// Full install with explicit options. Returns the loaded `Arc<Dict>`.
+    pub fn install_with(options: InstallOptions) -> Result<Arc<Self>, Error> {
+        let mut core_opts = core::install::InstallOptions::default()
+            .source(match options.source {
+                InstallSource::OfficialRelease => core::install::InstallSource::OfficialRelease,
+                InstallSource::Url { url } => core::install::InstallSource::Url(url),
+                InstallSource::Tarball { path } => {
+                    core::install::InstallSource::Tarball(std::path::PathBuf::from(path))
+                }
+            })
+            .force(options.force);
+        if let Some(p) = options.cache_dir {
+            core_opts = core_opts.cache_dir(std::path::PathBuf::from(p));
+        }
+        let inner = core::Dict::install_with(core_opts)?;
+        Ok(Arc::new(Self { inner }))
+    }
+}
+
+/// Register a process-global cache directory for `Dict::install*`. First
+/// call wins; subsequent calls return [`Error::CacheDirAlreadySet`].
+///
+/// On iOS / Android / WASM this is **mandatory** — the host gets the right
+/// path from a platform API (Flutter's `path_provider`,
+/// `Context.getCacheDir`, `FileManager`) and registers it at startup.
+#[cfg(feature = "install")]
+pub fn init_sdk_cache_dir(path: String) -> Result<(), Error> {
+    core::install::init_sdk_cache_dir(std::path::PathBuf::from(path)).map_err(Into::into)
 }
 
 #[cfg(test)]

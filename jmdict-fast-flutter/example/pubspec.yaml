@@ -37,6 +37,10 @@ dependencies:
   rust_lib_example:
     path: rust_builder
   flutter_rust_bridge: 2.11.1
+  # path_provider gives us a writable directory inside each platform's
+  # sandbox; we hand that to init_sdk_cache_dir on startup so install
+  # works without the user pasting any paths.
+  path_provider: ^2.1.4
 
 dev_dependencies:
   flutter_test:

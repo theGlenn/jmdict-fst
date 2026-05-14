@@ -17,5 +17,12 @@ publish = false
 crate-type = ["lib", "staticlib", "cdylib"]
 
 [dependencies]
-jmdict-fast-ffi = { path = "../jmdict-fast-ffi", version = "0.1.2" }
+# `install` is enabled unconditionally here. The whole reason this crate
+# exists is to ship a `boltffi pack` artifact to Swift/Kotlin/etc., and
+# we want every foreign-language consumer to get the same surface
+# (install + init_sdk_cache_dir). BoltFFI's `#[export]` proc-macro
+# doesn't propagate `#[cfg]` to its generated FFI shims, so the
+# alternative — two `#[export] impl Dict` blocks — would collide on
+# `dict_free`. Forwarding install unconditionally is the cleanest call.
+jmdict-fast-ffi = { path = "../jmdict-fast-ffi", version = "0.1.3", features = ["install"] }
 boltffi = "0.25"
