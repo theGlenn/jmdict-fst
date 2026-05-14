@@ -1,0 +1,23 @@
+bunpo/README.md
+  s_377b95b88256d5::t_1ca3bad587d255 5
+README.md
+  s_377b95b88256d5::t_d3175c7ccefc40 5,7
+jmdict-fast/README.md
+  s_377b95b88256d5::t_b340ba122b940e 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "8a80706b129b01c5240f49693ecbe7da07254dec",
+  "prompts": {},
+  "sessions": {
+    "s_377b95b88256d5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "365a5e96-329d-471d-b9ce-d7aaff6521a5",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
