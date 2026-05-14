@@ -9,30 +9,36 @@ changelog_update = true
 dependencies_update = true
 # Tag and create a GitHub release for each published crate.
 git_release_enable = true
-# xtask is also marked `publish = false` in its Cargo.toml; this is a
-# belt-and-suspenders override so release-plz never tries to bump or
-# release it.
+# Each non-publishable crate needs BOTH `release = false` (skip tag +
+# GitHub release) AND `publish = false` (acknowledge the Cargo.toml
+# `publish = false`). Without the second flag release-plz fails the
+# whole workflow with a "Cargo.toml says publish=false but config says
+# publish=true" consistency error — see the failed run on commit
+# 08fa4ba where v0.1.3 stalled.
+
+# xtask: dev-only build helper, never published.
 [[package]]
 name = "xtask"
 release = false
+publish = false
 
-# jmdict-fast-ffi is also `publish = false` until the per-generator
-# wrapper crates (uniffi/frb/bolt) land — releasing the facade on its
-# own would publish an API that no foreign-language consumer can yet
-# reach.
+# jmdict-fast-ffi: facade crate; not on crates.io until at least one
+# per-generator wrapper ships a real consumer.
 [[package]]
 name = "jmdict-fast-ffi"
 release = false
+publish = false
 
-# jmdict-fast-bolt produces native + WASM artifacts via `boltffi pack`;
-# crates.io publication is not the relevant distribution channel.
+# jmdict-fast-bolt: ships via `boltffi pack` to Swift/Kotlin/Java/C#/WASM,
+# not crates.io.
 [[package]]
 name = "jmdict-fast-bolt"
 release = false
+publish = false
 
-# jmdict-fast-flutter produces native libraries + Dart bindings via
-# `flutter_rust_bridge_codegen`; distribution happens through pub.dev
-# (Dart package) and the host Flutter plugin, not crates.io.
+# jmdict-fast-flutter: ships via pub.dev (Dart package) + Flutter plugin,
+# not crates.io.
 [[package]]
 name = "jmdict-fast-flutter"
 release = false
+publish = false
