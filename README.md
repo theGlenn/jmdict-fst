@@ -66,7 +66,7 @@ cargo xtask generate
 
 # Option B — download pre-built data from GitHub Releases
 mkdir -p dist
-curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt3.tar.gz \
+curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt4.tar.gz \
   | tar xz -C dist/
 ```
 
@@ -89,7 +89,8 @@ fn main() -> anyhow::Result<()> {
     let dict = Dict::load_default()?;
 
     // Exact lookup
-    for entry in dict.lookup_exact("猫") {
+    for result in dict.lookup_exact("猫") {
+        let entry = &result.entry;
         println!("{}: {}", entry.kanji[0].text, entry.sense[0].gloss[0].text);
     }
 

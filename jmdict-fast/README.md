@@ -62,11 +62,11 @@ cargo xtask generate
 # Option B — download pre-built data from GitHub Releases
 # (asset name encodes JMdict + format versions; check Releases for current values)
 mkdir -p dist
-curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt3.tar.gz \
+curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt4.tar.gz \
   | tar xz -C dist/
 ```
 
-This produces five files in `dist/`: `kana.fst`, `kanji.fst`, `romaji.fst`, `id.fst`, `entries.bin`.
+This produces seven files in `dist/`: `kana.fst`, `kanji.fst`, `romaji.fst`, `id.fst`, `gloss.fst`, `entries.bin`, and `gloss_postings.bin`.
 
 ### 2. Add the dependency
 
@@ -87,7 +87,8 @@ fn main() -> anyhow::Result<()> {
     let dict = Dict::load_default()?;
 
     // Exact lookup
-    for entry in dict.lookup_exact("猫") {
+    for result in dict.lookup_exact("猫") {
+        let entry = &result.entry;
         println!("{}: {}", entry.kanji[0].text, entry.sense[0].gloss[0].text);
     }
 
@@ -149,17 +150,18 @@ let dict = jmdict_fast::Dict::load("/path/to/data")?;
 ## 📊 Data Structure
 
 ```
-kana.fst     kanji.fst     romaji.fst    id.fst
-   │              │              │            │
-   └──────────────┼──────────────┘            │
-                  ▼                           │
-            entries.bin ◄─────────────────────┘
-         (postcard-serialized entries
-          with version header)
+kana.fst   kanji.fst   romaji.fst   id.fst        gloss.fst
+   │           │            │          │              │
+   └───────────┼────────────┘          │              ▼
+               ▼                       │      gloss_postings.bin
+         entries.bin ◄─────────────────┘     (per token: u32 count
+      (postcard-serialized entries           followed by count × u64
+       with version header)                   entry ids, little-endian)
 ```
 
 - **FST maps** — sorted key→entry-id indexes for each writing system, plus a JMdict-ID index
 - **entries.bin** — versioned binary blob (magic `JMDF` + format version + postcard-serialized entries)
+- **gloss.fst + gloss_postings.bin** — English-gloss reverse-lookup index: tokens → byte offset into a postings file containing the matching entry-id sets
 
 ---
 
