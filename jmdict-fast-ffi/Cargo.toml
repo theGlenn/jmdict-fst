@@ -11,4 +11,4 @@ categories = ["text-processing", "internationalization"]
 publish = false
 
 [dependencies]
-jmdict-fast = { path = "../jmdict-fast", version = "0.1.2" }
+jmdict-fast = { path = "../jmdict-fast", version = "0.1.3" }

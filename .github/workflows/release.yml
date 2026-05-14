@@ -30,7 +30,12 @@ jobs:
           echo "name=jmdict-data-jmdict${jmdict_version}-fmt${format_version}.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Bundle data files
-        run: tar -czf "${{ steps.artifact.outputs.name }}" -C dist kana.fst kanji.fst romaji.fst id.fst entries.bin
+        # fmt4 added gloss.fst + gloss_postings.bin; the loader rejects a
+        # tarball missing either with DataNotFound, so they must ship too.
+        run: |
+          tar -czf "${{ steps.artifact.outputs.name }}" -C dist \
+            kana.fst kanji.fst romaji.fst id.fst entries.bin \
+            gloss.fst gloss_postings.bin
 
       - name: Attach to GitHub Release
         env:

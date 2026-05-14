@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/theGlenn/jmdict-fst/compare/jmdict-fast-v0.1.2...jmdict-fast-v0.1.3) - 2026-05-14
+
+### Added
+
+- Dict::install — download / local tarball / cache-dir override ([#18](https://github.com/theGlenn/jmdict-fst/pull/18))
+- gloss reverse lookup, sense filters, xref resolution ([#12](https://github.com/theGlenn/jmdict-fst/pull/12))
+- round out library API and reorganize tests ([#10](https://github.com/theGlenn/jmdict-fst/pull/10))
+
+### Other
+
+- restore welcoming README with features, perf, and side-by-side bench ([#17](https://github.com/theGlenn/jmdict-fst/pull/17))
+
 ## [0.1.2](https://github.com/theGlenn/jmdict-fst/compare/jmdict-fast-v0.1.1...jmdict-fast-v0.1.2) - 2026-05-11
 
 ### Other
