@@ -71,14 +71,20 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _runQuery() async {
     if (!isDictionaryReady()) return;
-    final stopwatch = Stopwatch()..start();
+    // Snapshot the query parameters at the moment we kick off the lookup.
+    // `lookupGloss` is async — if the user types again (or flips the mode)
+    // while it's in flight, we don't want a stale result to overwrite the
+    // newer one when the older Future finally resolves.
     final term = _queryCtl.text;
-    final hits = switch (_mode) {
+    final mode = _mode;
+    final stopwatch = Stopwatch()..start();
+    final hits = switch (mode) {
       _Mode.exact => lookupExact(term: term),
       _Mode.partial => lookupPartial(prefix: term),
       _Mode.gloss => await lookupGloss(query: term),
     };
     stopwatch.stop();
+    if (!mounted || term != _queryCtl.text || mode != _mode) return;
     setState(() {
       _results = hits;
       _lastLookup = stopwatch.elapsed;
