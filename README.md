@@ -7,6 +7,13 @@
 [![bunpo on crates.io](https://img.shields.io/crates/v/bunpo.svg?label=bunpo)](https://crates.io/crates/bunpo)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+**SDK bindings:**
+[![Swift / SPM](https://img.shields.io/badge/SPM-coming%20soon-lightgrey?logo=swift&logoColor=white)](#-repository-layout)
+[![Kotlin / Maven](https://img.shields.io/badge/Kotlin-coming%20soon-lightgrey?logo=kotlin&logoColor=white)](#-repository-layout)
+[![Flutter / pub.dev](https://img.shields.io/badge/pub.dev-coming%20soon-lightgrey?logo=flutter&logoColor=white)](#-repository-layout)
+[![Python / PyPI](https://img.shields.io/badge/PyPI-coming%20soon-lightgrey?logo=python&logoColor=white)](#-repository-layout)
+[![JavaScript / npm](https://img.shields.io/badge/npm-coming%20soon-lightgrey?logo=npm&logoColor=white)](#-repository-layout)
+
 `jmdict-fst` is a monorepo built around **[jmdict-fast](./jmdict-fast/)** — a Rust dictionary engine that turns the official **JMdict** dataset into memory-mapped FST indexes and serves lookups in **~4 µs**.
 
 If you're building a Japanese reader, an IME, a language-learning app, or anything that needs to look up words *fast* — this is for you.
