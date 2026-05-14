@@ -1,0 +1,47 @@
+jmdict-fast/benches/lookup_word.rs
+  s_907e2d3a255a25::t_28d75d60d81af0 31-32,35-48
+  s_907e2d3a255a25::t_14f61eddeeb7f2 33-34
+jmdict-fast/examples/startup_jisho.rs
+  s_907e2d3a255a25::t_bf03d84d8decb4 1-25
+jmdict-fast/Cargo.toml
+  s_907e2d3a255a25::t_7f31c0df900cb5 44,47-58
+  s_907e2d3a255a25::t_d020222b8d86d3 43
+jmdict-fast/examples/startup_jmdict.rs
+  s_907e2d3a255a25::t_9ba65b48ffaedc 1-31
+jmdict-fast/examples/startup_jmdict_fast_embedded.rs
+  s_907e2d3a255a25::t_a3f3100c4004d9 1-29
+jmdict-fast/examples/startup_jmdict_fast_mmap.rs
+  s_907e2d3a255a25::t_b6fdbc9267570d 1-29
+README.md
+  s_907e2d3a255a25::t_d5292f51c695dc 192
+  s_907e2d3a255a25::t_acba80ffdcedb9 47,49,51-56,58-65,68-77,79-92,95
+  s_907e2d3a255a25::t_9cc0bdb8edd987 78
+  s_907e2d3a255a25::t_bfb430335b5001 109,112
+  s_907e2d3a255a25::t_fcf19b6bb758e3 180
+  s_907e2d3a255a25::t_e6590ee76ca299 96
+  s_907e2d3a255a25::t_45f928831f7144 44-45
+  s_907e2d3a255a25::t_ba76319a2bda67 57,66-67
+  s_907e2d3a255a25::t_8fe4419e8dd1be 233,237-239
+  s_907e2d3a255a25::t_cc756ee5670019 17,19
+  s_907e2d3a255a25::t_096ce3637ec369 25-31
+  s_907e2d3a255a25::t_015763e2042803 93
+  s_907e2d3a255a25::t_ef0871f358a149 94
+  s_907e2d3a255a25::t_d269915ff689de 229
+  s_907e2d3a255a25::t_6918fd7faf296f 98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "e3be2903d7b124faec24d65f536b024ebd6fc6b9",
+  "prompts": {},
+  "sessions": {
+    "s_907e2d3a255a25": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45fe9fad-99a5-474f-8970-eff644557bdf",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
