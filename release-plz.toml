@@ -9,12 +9,11 @@ changelog_update = true
 dependencies_update = true
 # Tag and create a GitHub release for each published crate.
 git_release_enable = true
-# Each non-publishable crate needs BOTH `release = false` (skip tag +
-# GitHub release) AND `publish = false` (acknowledge the Cargo.toml
-# `publish = false`). Without the second flag release-plz fails the
-# whole workflow with a "Cargo.toml says publish=false but config says
-# publish=true" consistency error — see the failed run on commit
-# 08fa4ba where v0.1.3 stalled.
+# Each non-publishable crate (marked `publish = false` in its
+# Cargo.toml) must also be explicitly `publish = false` here, otherwise
+# release-plz aborts the whole workflow on a Cargo.toml ↔ config
+# mismatch. `release = false` only suppresses tag + GitHub-release
+# creation; it doesn't satisfy the publish-consistency check.
 
 # xtask: dev-only build helper, never published.
 [[package]]
