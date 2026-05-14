@@ -1,0 +1,43 @@
+jmdict-fast/Cargo.toml
+  s_e5745ca407912d::t_01f2a54bf3ff88 43
+  s_e5745ca407912d::t_e9efdd45c77d81 16-19,31-36
+jmdict-fast/src/install/mod.rs
+  s_e5745ca407912d::t_b71f2d8eca8e86 1-136
+jmdict-fast/src/install/cache_dir.rs
+  s_e5745ca407912d::t_8607b5750ca644 1-112
+jmdict-fast/src/install/tarball.rs
+  s_e5745ca407912d::t_f9fa77806b4c76 1-62,64-148
+  s_e5745ca407912d::t_f70d86e11aec3e 63
+.github/workflows/release.yml
+  s_e5745ca407912d::t_777ae5e8fcf044 33-38
+jmdict-fast/src/error.rs
+  s_e5745ca407912d::t_ccba405afa46d2 39-42
+  s_e5745ca407912d::t_413186f73896a6 71-82
+  s_e5745ca407912d::t_9fbfa494d8e90f 18-26
+jmdict-fast/src/model.rs
+  s_e5745ca407912d::t_c194a4df9f04a2 61-67
+jmdict-fast/src/install/options.rs
+  s_e5745ca407912d::t_7d59b94c783d0d 1-63
+jmdict-fast/tests/install.rs
+  s_e5745ca407912d::t_6dd5e76ac4be1d 104,118-119,122-125
+  s_e5745ca407912d::t_41f7076e0a2eaa 1-103,105-117,120-121,126-128,132,134,152-154,157
+  s_e5745ca407912d::t_b4fede272ed9f0 129-131,133,135-151,155-156
+jmdict-fast/src/lib.rs
+  s_e5745ca407912d::t_ac399856942205 5-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "1e93f70bef7777abf4cc7a233f6b2670aea1cf58",
+  "prompts": {},
+  "sessions": {
+    "s_e5745ca407912d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "04ad7dc4-1b77-43cd-aed7-9b868482f13e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
