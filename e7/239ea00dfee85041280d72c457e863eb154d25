@@ -1,0 +1,30 @@
+jmdict-fast/src/error.rs
+  s_e5745ca407912d::t_f1a0fa17776001 49-50
+  s_e5745ca407912d::t_8d71d42cd85277 91-95
+  s_e5745ca407912d::t_44edef82d5c1ea 27-32
+jmdict-fast/tests/install.rs
+  s_e5745ca407912d::t_834e7e9d39dc74 92-96,124-128
+jmdict-fast/src/install/tarball.rs
+  s_e5745ca407912d::t_ba78a5d681547f 61-67,69-73,81-89,91-92
+  s_e5745ca407912d::t_f3df08ae592185 15-18
+jmdict-fast/src/install/cache_dir.rs
+  s_e5745ca407912d::t_932c27d92e93fe 24-26,33-35
+jmdict-fast/src/install/mod.rs
+  s_e5745ca407912d::t_091efb8e4f9f47 108-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "e7239ea00dfee85041280d72c457e863eb154d25",
+  "prompts": {},
+  "sessions": {
+    "s_e5745ca407912d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "04ad7dc4-1b77-43cd-aed7-9b868482f13e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
