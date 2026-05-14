@@ -2,6 +2,15 @@
 
 > **Flutter/Dart bindings** for `jmdict-fast` via [flutter_rust_bridge](https://cjycode.com/flutter_rust_bridge/) v2.
 
+A working end-to-end demo lives in [`example/`](./example/) — a small Flutter app that calls `lookup_exact` / `lookup_partial` / `lookup_gloss` through Rust on macOS, iOS, Android, Linux, Windows, and the web. The example was scaffolded with `flutter_rust_bridge_codegen create example` and rewired to consume `jmdict-fast-flutter` via a path dep. To launch:
+>
+> ```sh
+> cd jmdict-fast-flutter/example
+> flutter run -d macos      # or `-d chrome`, `-d ios`, `-d android`, etc.
+> ```
+>
+> The first screen asks for the path to the JMdict data directory (defaults to `../../dist` — run `cargo xtask generate` from the repo root if you haven't already).
+
 This crate is the per-generator consumer of [`jmdict-fast-ffi`](../jmdict-fast-ffi/) (the FFI-agnostic facade) for Flutter and Dart. It exposes a flat, Dart-friendly surface that `flutter_rust_bridge_codegen` scans to emit:
 
 - `src/frb_generated.rs` — Rust glue (linked into the cdylib that ships with the host app).
