@@ -58,6 +58,13 @@ pub const MAGIC: &[u8; 4] = b"JMDF";
 ///   files to exist alongside it.
 pub const FORMAT_VERSION: u32 = 4;
 
+/// JMdict source version this build was generated against. Surfaces to the
+/// `install` feature so `Dict::install()` can resolve the right release
+/// tarball without the caller hardcoding a version. Kept in lock-step with
+/// `xtask::JMDICT_VERSION`; bump together when upgrading the upstream
+/// JMdict release.
+pub const JMDICT_VERSION: &str = "3.6.1";
+
 /// Dictionary data version information.
 #[derive(Debug, Clone)]
 pub struct DataVersion {

@@ -2,6 +2,8 @@
 
 mod dict;
 mod error;
+#[cfg(feature = "install")]
+pub mod install;
 mod model;
 mod query;
 
