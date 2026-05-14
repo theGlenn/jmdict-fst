@@ -2,9 +2,9 @@
 
 > **Blazing-fast Japanese dictionary lookups, powered by FST indexing.**
 
-[![jmdict-fast](https://img.shields.io/crates/v/jmdict-fast.svg)](https://crates.io/crates/jmdict-fast)
+[![jmdict-fast on crates.io](https://img.shields.io/crates/v/jmdict-fast.svg?label=jmdict-fast)](https://crates.io/crates/jmdict-fast)
 [![docs.rs](https://docs.rs/jmdict-fast/badge.svg)](https://docs.rs/jmdict-fast)
-[![bunpo](https://img.shields.io/crates/v/bunpo.svg)](https://crates.io/crates/bunpo)
+[![bunpo on crates.io](https://img.shields.io/crates/v/bunpo.svg?label=bunpo)](https://crates.io/crates/bunpo)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 `jmdict-fst` is a monorepo built around **[jmdict-fast](./jmdict-fast/)** — a Rust dictionary engine that turns the official **JMdict** dataset into memory-mapped FST indexes and serves lookups in **~4 µs**.

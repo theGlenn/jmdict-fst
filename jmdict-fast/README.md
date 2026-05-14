@@ -2,7 +2,7 @@
 
 > **Blazing-fast Japanese dictionary engine, powered by FST indexing.**
 
-[![crates.io](https://img.shields.io/crates/v/jmdict-fast.svg)](https://crates.io/crates/jmdict-fast)
+[![jmdict-fast on crates.io](https://img.shields.io/crates/v/jmdict-fast.svg?label=jmdict-fast)](https://crates.io/crates/jmdict-fast)
 [![docs.rs](https://docs.rs/jmdict-fast/badge.svg)](https://docs.rs/jmdict-fast)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
