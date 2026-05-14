@@ -14,21 +14,21 @@
 [![Python / PyPI](https://img.shields.io/badge/PyPI-coming%20soon-lightgrey?logo=python&logoColor=white)](#-repository-layout)
 [![JavaScript / npm](https://img.shields.io/badge/npm-coming%20soon-lightgrey?logo=npm&logoColor=white)](#-repository-layout)
 
-`jmdict-fst` is a monorepo built around **[jmdict-fast](./jmdict-fast/)** — a Rust dictionary engine that turns the official **JMdict** dataset into memory-mapped FST indexes and serves lookups in **~4 µs**.
+`jmdict-fst` is a monorepo built around **[jmdict-fast](./jmdict-fast/)**, a Rust dictionary engine that turns the official **JMdict** dataset into memory-mapped FST indexes and serves lookups in **~4 µs**.
 
-If you're building a Japanese reader, an IME, a language-learning app, or anything that needs to look up words *fast* — this is for you.
+If you're building a Japanese reader, an IME, a language-learning app, or anything else that needs fast word lookup, this is for you.
 
 ---
 
 ## ✨ Features
 
-- **⚡ Instant lookups** — O(log n) exact matching across kanji, kana, and romaji (~4 µs per lookup)
-- **🔎 Multimodal search** — exact, prefix, fuzzy, and English-gloss reverse lookup
-- **🪶 Memory-mapped** — zero-copy access, no upfront read into a `Vec`, no allocations during lookup
-- **🧠 Deinflection-aware** — finds `食べる` from `食べます` via the bundled [bunpo](./bunpo/) deinflector
-- **📦 Two loading modes** — embedded (data baked into the binary) or runtime-loaded (from filesystem)
-- **🏷️ Full JMdict data** — antonyms, dialects, field tags, cross-references, JMdict IDs
-- **🎯 Filterable queries** — by part-of-speech, misc tag, field, dialect, common-only, with limits and edit distance
+- **⚡ Instant lookups**: O(log n) exact matching across kanji, kana, and romaji (~4 µs per lookup)
+- **🔎 Multimodal search**: exact, prefix, fuzzy, and English-gloss reverse lookup
+- **🪶 Memory-mapped**: zero-copy access, no upfront read into a `Vec`, no allocations during lookup
+- **🧠 Deinflection-aware**: finds `食べる` from `食べます` via the bundled [bunpo](./bunpo/) deinflector
+- **📦 Two loading modes**: embedded (data baked into the binary) or runtime-loaded (from filesystem)
+- **🏷️ Full JMdict data**: antonyms, dialects, field tags, cross-references, JMdict IDs
+- **🎯 Filterable queries**: by part-of-speech, misc tag, field, dialect, common-only, with limits and edit distance
 
 ---
 
@@ -41,16 +41,61 @@ If you're building a Japanese reader, an IME, a language-learning app, or anythi
 | **Lookup speed**  | O(log n), ~4 µs                |
 | **Memory usage**  | Memory-mapped, zero allocations |
 
-### Side-by-side vs [`jmdict`](https://crates.io/crates/jmdict)
+<details>
+<summary><strong>Side-by-side vs other Rust JMdict crates</strong></summary>
 
-The bundled Criterion bench ([`jmdict-fast/benches/lookup_word.rs`](./jmdict-fast/benches/lookup_word.rs)) looks up `猫` against both crates on the same machine:
+Benched on the same machine looking up `猫`. Criterion bench is in [`jmdict-fast/benches/lookup_word.rs`](./jmdict-fast/benches/lookup_word.rs); the startup / RSS numbers come from the four standalone binaries in [`jmdict-fast/examples/startup_*.rs`](./jmdict-fast/examples/), each run as a fresh process.
 
-| Crate                                              | Approach                                | Time per lookup | Relative      |
-|----------------------------------------------------|-----------------------------------------|-----------------|---------------|
-| **`jmdict-fast` (this)**                           | FST index + memory-mapped binary blob   | **~4.06 µs**    | **1×**        |
-| [`jmdict`](https://crates.io/crates/jmdict) v2.x   | Linear filter over `entries()` iterator | ~511.96 µs      | ~125× slower  |
+#### Steady-state lookup (warm, after load)
 
-That's the gap between an O(log n) FST walk and an O(n) full-table scan. Run `cargo bench -p jmdict-fast` to reproduce.
+| Crate                                            | Approach                                | Per-lookup    |
+|--------------------------------------------------|-----------------------------------------|---------------|
+| [`jisho`](https://crates.io/crates/jisho)        | Eager-loaded `HashMap`s (in-memory)     | **~48 ns**    |
+| **`jmdict-fast` (this)**                         | FST index + mmap                        | ~3.1 µs       |
+| [`jmdict`](https://crates.io/crates/jmdict)      | Linear filter over `entries()`          | ~549 µs       |
+
+#### Time to first result (cold process start to first lookup returned)
+
+| Crate                                | Cold first lookup | Warm first lookup |
+|--------------------------------------|-------------------|-------------------|
+| **`jmdict-fast`** (embedded)         | **~80 µs**        | **~13 µs**        |
+| **`jmdict-fast`** (mmap)             | ~3 ms             | ~13 µs            |
+| `jmdict`                             | ~5 ms             | ~880 µs           |
+| `jisho`                              | ~82 ms            | ~54 ms            |
+
+- `jisho`'s `lazy_static` decompresses and decodes the full dictionary on the first lookup. Every process invocation pays this cost.
+- For CLI tools, mobile apps, serverless, and anything short-lived, `jmdict-fast` returns its first result roughly **1000 to 6000 times faster**.
+
+#### Resident memory and binary size
+
+| Crate                       | RSS after first lookup | Binary size       |
+|-----------------------------|------------------------|-------------------|
+| **`jmdict-fast`** (mmap)    | **~1.9 MB**            | **0.5 MB** + ~17 MB external data |
+| **`jmdict-fast`** (embedded)| **~1.8 MB**            | ~48 MB (data baked in)            |
+| `jmdict`                    | ~6.9 MB                | ~5.9 MB (English-only subset)     |
+| `jisho`                     | ~100 MB                | ~85 MB                            |
+
+`jmdict-fast` uses roughly **50 times less memory** than `jisho`, because the FST and entry blob are memory-mapped. The OS pages in only what you touch.
+
+#### Feature matrix
+
+| Capability              | `jmdict-fast` | `jisho` | `jmdict` |
+|-------------------------|---------------|---------|----------|
+| Exact lookup            | ✅            | ✅      | ✅       |
+| Prefix search           | ✅            | wildcards only | ❌ |
+| Fuzzy / Levenshtein     | ✅            | ❌      | ❌       |
+| English-gloss reverse   | ✅            | ✅      | (via filter) |
+| Deinflection            | ✅            | ❌      | ❌       |
+| Cross-platform bindings | Swift / Kotlin / Flutter (and more in progress) | ❌ | ❌ |
+
+#### TL;DR
+
+- Pick **`jisho`** for long-lived servers doing millions of exact lookups where RAM is free.
+- Pick **`jmdict-fast`** for mobile, CLI tools, serverless, and IMEs. Anything short-lived, memory-constrained, or that needs more than exact lookup.
+
+To reproduce: run `cargo bench -p jmdict-fast --features embedded` for the lookup benchmark, and `cargo run --release -p jmdict-fast --example startup_<engine>` for the startup and RSS numbers.
+
+</details>
 
 ---
 
@@ -61,10 +106,10 @@ That's the gap between an O(log n) FST walk and an O(n) full-table scan. Run `ca
 Data files are not bundled with the crate. Generate them locally or grab a pre-built tarball:
 
 ```bash
-# Option A — generate from source (requires network access)
+# Option A: generate from source (requires network access)
 cargo xtask generate
 
-# Option B — download pre-built data from GitHub Releases
+# Option B: download pre-built data from GitHub Releases
 mkdir -p dist
 curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt4.tar.gz \
   | tar xz -C dist/
@@ -132,7 +177,7 @@ The core of the project is **[`jmdict-fast`](./jmdict-fast/)**. Everything else 
 |---|---|
 | **[`jmdict-fast`](./jmdict-fast/)** | The dictionary engine. The thing you probably want. |
 | [`bunpo`](./bunpo/) | Lightweight, zero-dependency deinflection engine. Used by `jmdict-fast` for conjugation handling, but also publishable on its own. |
-| [`jmdict-fast-ffi`](./jmdict-fast-ffi/) | FFI-agnostic facade crate — the foundation for non-Rust bindings. |
+| [`jmdict-fast-ffi`](./jmdict-fast-ffi/) | FFI-agnostic facade crate. The foundation for non-Rust bindings. |
 | [`jmdict-fast-bolt`](./jmdict-fast-bolt/) | BoltFFI bindings for Swift, Kotlin, Java, C#, and WASM. |
 | [`jmdict-fast-flutter`](./jmdict-fast-flutter/) | Flutter bindings via `flutter_rust_bridge`, with an end-to-end example app. |
 | `xtask` | Build tooling: downloads JMdict and produces the FST indexes + binary blob. |
@@ -144,7 +189,7 @@ The core of the project is **[`jmdict-fast`](./jmdict-fast/)**. Everything else 
 `Dict::load_default()` tries sources in order:
 
 1. **Embedded data** (if the `embedded` feature is enabled)
-2. **`JMDICT_DATA`** env var — path to a directory with data files
+2. **`JMDICT_DATA`** env var: path to a directory with data files
 3. **`dist/`** relative to the current directory
 4. **`dist/`** relative to the workspace root
 
@@ -181,17 +226,17 @@ Required repository secrets:
 
 ## 🤝 Contributing
 
-Issues, PRs, and ideas welcome — especially around new lookup modes, FFI ergonomics, or data quality. Fork, branch, test, PR.
+Issues, PRs, and ideas welcome, especially around new lookup modes, FFI ergonomics, or data quality. Fork, branch, test, PR.
 
 ## 📄 License
 
-MIT License — see [LICENSE](./LICENSE).
+MIT License. See [LICENSE](./LICENSE).
 
 ## 🙏 Acknowledgments
 
-- **JMdict** — the source dictionary data. See the [EDRDG dictionary licence statement](https://www.edrdg.org/edrdg/licence.html).
-- **[fst](https://crates.io/crates/fst)** — the underlying finite-state-transducer crate.
-- **[10ten Japanese Reader](https://github.com/birchill/10ten-ja-reader)** — for their deinflector implementation, which inspired `bunpo`.
+- **JMdict**: the source dictionary data. See the [EDRDG dictionary licence statement](https://www.edrdg.org/edrdg/licence.html).
+- **[fst](https://crates.io/crates/fst)**: the underlying finite-state-transducer crate.
+- **[10ten Japanese Reader](https://github.com/birchill/10ten-ja-reader)**: for their deinflector implementation, which inspired `bunpo`.
 
 ---
 
