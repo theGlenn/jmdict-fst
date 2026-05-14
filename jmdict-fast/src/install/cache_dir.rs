@@ -21,16 +21,18 @@ use std::sync::OnceLock;
 static OVERRIDE: OnceLock<PathBuf> = OnceLock::new();
 
 /// Register a process-global cache directory for `Dict::install*`. First
-/// call wins; subsequent calls return [`JmdictError::InvalidQuery`] rather
-/// than silently overwriting (which would leave previously-loaded `Dict`s
-/// pointing at a different root than future installs).
+/// call wins; subsequent calls return [`JmdictError::CacheDirAlreadySet`]
+/// rather than silently overwriting (which would leave previously-loaded
+/// `Dict`s pointing at a different root than future installs).
 ///
 /// On sandboxed platforms (iOS / Android / WASM) this is **mandatory** —
 /// the host gets the right path from a platform API (Flutter's
 /// `path_provider`, Android's `Context.getCacheDir`, iOS `FileManager`) and
 /// passes it in once at startup.
 pub fn init_sdk_cache_dir(path: PathBuf) -> Result<(), JmdictError> {
-    OVERRIDE.set(path).map_err(|_| JmdictError::InvalidQuery)
+    OVERRIDE
+        .set(path)
+        .map_err(|_| JmdictError::CacheDirAlreadySet)
 }
 
 /// Resolve the cache root using tiers 2 and 3 of the priority chain. Tier 1

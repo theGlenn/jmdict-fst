@@ -24,6 +24,12 @@ pub enum JmdictError {
     /// A network request inside `Dict::install*` failed.
     #[cfg(feature = "install")]
     NetworkError(String),
+    /// [`crate::install::init_sdk_cache_dir`] was called more than once.
+    /// The cache root is process-global and first-set-wins, so a second
+    /// call is rejected rather than silently leaving previously-loaded
+    /// `Dict`s pointing at a different root than future installs.
+    #[cfg(feature = "install")]
+    CacheDirAlreadySet,
 }
 
 impl JmdictError {
@@ -40,6 +46,8 @@ impl JmdictError {
             JmdictError::CacheDirRequired { .. } => 7,
             #[cfg(feature = "install")]
             JmdictError::NetworkError(_) => 8,
+            #[cfg(feature = "install")]
+            JmdictError::CacheDirAlreadySet => 9,
         }
     }
 }
@@ -80,6 +88,11 @@ impl fmt::Display for JmdictError {
             }
             #[cfg(feature = "install")]
             JmdictError::NetworkError(msg) => write!(f, "Network error during install: {msg}"),
+            #[cfg(feature = "install")]
+            JmdictError::CacheDirAlreadySet => write!(
+                f,
+                "init_sdk_cache_dir was already called for this process; the cache root is one-shot."
+            ),
         }
     }
 }

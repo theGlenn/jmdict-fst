@@ -105,6 +105,14 @@ impl Dict {
         let target = root.join(install_subdir());
 
         if opts.force || !install_complete(&target) {
+            // With force=true the caller wants a clean reinstall —
+            // wipe first so files from a prior install that aren't in
+            // the new tarball (or stale corrupt versions) don't linger.
+            // Skipped on the "first install" path so the OS doesn't see
+            // a needless remove/recreate dance.
+            if opts.force && target.exists() {
+                std::fs::remove_dir_all(&target)?;
+            }
             std::fs::create_dir_all(&target)?;
             materialize(&target, &opts.source)?;
             if !install_complete(&target) {

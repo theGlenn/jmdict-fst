@@ -12,8 +12,10 @@ use tar::Archive;
 /// ballooning memory before we even look at the content.
 const MAX_DOWNLOAD_BYTES: usize = 50 * 1024 * 1024;
 
-/// Maximum bytes any single tar entry will write. Matches MAX_DOWNLOAD_BYTES;
-/// a tarball can't legitimately contain a file larger than itself.
+/// Maximum declared size of any single tar entry. Matches
+/// `MAX_DOWNLOAD_BYTES`; a tarball can't legitimately contain a file
+/// larger than itself, and oversize headers are rejected *before* the
+/// copy so we never produce a half-written, silently-truncated file.
 const MAX_ENTRY_BYTES: u64 = MAX_DOWNLOAD_BYTES as u64;
 
 /// Blocking HTTPS GET → bytes. Uses `ureq` so we don't drag tokio into the
@@ -56,20 +58,19 @@ pub(crate) fn extract_from_path(path: &Path, target: &Path) -> Result<(), Jmdict
 }
 
 fn extract_archive<R: Read>(mut archive: Archive<R>, target: &Path) -> Result<(), JmdictError> {
-    for entry in archive
-        .entries()
-        .map_err(|e| JmdictError::NetworkError(format!("tar read failed: {e}")))?
-    {
-        let entry = entry.map_err(|e| JmdictError::NetworkError(format!("tar entry failed: {e}")))?;
-        let path = entry
-            .path()
-            .map_err(|e| JmdictError::NetworkError(format!("tar path invalid: {e}")))?
-            .into_owned();
+    // `tar` exposes io::Result everywhere, so `?` lets `From<io::Error>`
+    // map NotFound → DataNotFound and the rest to IoError — accurate for
+    // both the network and the local-tarball entry points, instead of
+    // misattributing a local read failure as NetworkError.
+    for entry in archive.entries()? {
+        let mut entry = entry?;
+        let path = entry.path()?.into_owned();
 
-        // Strip the leading directory component (the workflow produces
-        // tarballs with files at the archive root, but historical or
-        // mirror tarballs sometimes wrap them in a top-level dir; only
-        // accept the basename so both layouts work).
+        // Strip to basename. The workflow ships files at the archive
+        // root, but historical or mirror tarballs sometimes wrap them
+        // in a top-level dir; accepting the basename makes both layouts
+        // work. As a side-effect this neutralizes any `../` traversal a
+        // hostile archive could try.
         let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
             continue;
         };
@@ -77,12 +78,18 @@ fn extract_archive<R: Read>(mut archive: Archive<R>, target: &Path) -> Result<()
             continue;
         }
 
-        // Refuse traversal even though we already reduced to file_name;
-        // tar entries can claim symlink targets, and `unpack` would honor
-        // them. Reading into our own writer sidesteps that entirely.
+        // Check the *declared* size from the tar header before copying.
+        // Using `Read::take(limit)` instead would silently truncate an
+        // oversize entry to `limit` bytes and produce a corrupted file
+        // that only fails much later at `Dict::load`. Better to refuse
+        // the install up front.
+        if entry.size() > MAX_ENTRY_BYTES {
+            return Err(JmdictError::DataCorrupted);
+        }
+
         let dest: PathBuf = target.join(name);
-        let mut out = std::fs::File::create(&dest).map_err(JmdictError::IoError)?;
-        std::io::copy(&mut entry.take(MAX_ENTRY_BYTES), &mut out).map_err(JmdictError::IoError)?;
+        let mut out = std::fs::File::create(&dest)?;
+        std::io::copy(&mut entry, &mut out)?;
     }
     Ok(())
 }

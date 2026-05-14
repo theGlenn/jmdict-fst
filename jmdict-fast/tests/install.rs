@@ -89,7 +89,11 @@ fn install_skips_extract_on_warm_cache() {
 
     // Touch the entries.bin so we can tell whether the second install
     // overwrote it. If extract ran again, mtime would advance.
-    let installed_dir = cache.path().join("jmdict-fast").join("fmt4").join("3.6.1");
+    let installed_dir = cache
+        .path()
+        .join("jmdict-fast")
+        .join(format!("fmt{}", jmdict_fast::FORMAT_VERSION))
+        .join(jmdict_fast::JMDICT_VERSION);
     let entries = installed_dir.join("entries.bin");
     let before = std::fs::metadata(&entries).unwrap().modified().unwrap();
 
@@ -117,7 +121,11 @@ fn install_force_overwrites_corrupted_file() {
 
     // Corrupt one of the installed files. A warm cache will reuse it
     // (and Dict::load will reject it); force=true must rewrite it.
-    let installed_dir = cache.path().join("jmdict-fast").join("fmt4").join("3.6.1");
+    let installed_dir = cache
+        .path()
+        .join("jmdict-fast")
+        .join(format!("fmt{}", jmdict_fast::FORMAT_VERSION))
+        .join(jmdict_fast::JMDICT_VERSION);
     let entries = installed_dir.join("entries.bin");
     std::fs::write(&entries, b"not a valid entries.bin").unwrap();
 
