@@ -40,7 +40,22 @@ dirs = { version = "5.0", optional = true }
 [dev-dependencies]
 criterion = "0.5"
 jmdict = "2.0.0"
+jisho = "0.2.11"
+memory-stats = "1.2"
 tempfile = "3.10"
+
+[[example]]
+name = "startup_jmdict_fast_mmap"
+
+[[example]]
+name = "startup_jmdict_fast_embedded"
+required-features = ["embedded"]
+
+[[example]]
+name = "startup_jisho"
+
+[[example]]
+name = "startup_jmdict"
 
 [[bench]]
 name = "lookup_word"
