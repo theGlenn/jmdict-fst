@@ -1,0 +1,12 @@
+# flutter_rust_bridge_codegen output — generated locally / in CI, never
+# hand-edited. See README for the regeneration command.
+/src/frb_generated.rs
+/src/frb_generated.io.rs
+/src/frb_generated.web.rs
+/dart/lib/src/
+
+# Dart tooling
+/dart/.dart_tool/
+/dart/.packages
+/dart/pubspec.lock
+/dart/build/

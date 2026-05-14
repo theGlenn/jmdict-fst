@@ -1,0 +1,25 @@
+# Standalone crate — intentionally NOT part of the parent workspace. The
+# example mirrors how a downstream Flutter app would consume our published
+# crate: it has its own `Cargo.lock` and resolves `jmdict-fast-flutter`
+# like any other dependency (here via a path dep instead of crates.io).
+[workspace]
+
+[package]
+name = "rust_lib_example"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+flutter_rust_bridge = "=2.11.1"
+# Demo this example crate consuming the published-style binding crate.
+# In a real downstream Flutter app this would be:
+#   jmdict-fast-flutter = "0.1"
+# but inside the monorepo we use a path dep so the example tracks main.
+jmdict-fast-flutter = { path = "../../" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

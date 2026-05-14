@@ -1,0 +1,12 @@
+# flutter_rust_bridge_codegen reads this file from the Rust crate root.
+# Run `flutter_rust_bridge_codegen generate` (or `--watch`) from this
+# directory to (re)generate `src/frb_generated.rs` and the Dart bindings
+# under `dart/lib/`.
+#
+# After the first run, add `mod frb_generated;` to `src/lib.rs` so the
+# generated glue is part of the build.
+
+rust_input: crate::api
+dart_output: dart/lib/src
+# Keep generated artifacts under a `src/` subfolder so the Dart package's
+# top-level `lib/jmdict_fast.dart` can curate what gets re-exported.
