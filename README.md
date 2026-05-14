@@ -1,70 +1,78 @@
 # jmdict-fst
 
-A monorepo for **high-performance Japanese dictionary and grammar tools**.
+> **Blazing-fast Japanese dictionary lookups, powered by FST indexing.**
 
 [![jmdict-fast](https://img.shields.io/crates/v/jmdict-fast.svg)](https://crates.io/crates/jmdict-fast)
+[![docs.rs](https://docs.rs/jmdict-fast/badge.svg)](https://docs.rs/jmdict-fast)
 [![bunpo](https://img.shields.io/crates/v/bunpo.svg)](https://crates.io/crates/bunpo)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## Overview
+`jmdict-fst` is a monorepo built around **[jmdict-fast](./jmdict-fast/)** — a Rust dictionary engine that turns the official **JMdict** dataset into memory-mapped FST indexes and serves lookups in **~4 µs**.
 
-This repository includes two Rust crates, published independently:
+If you're building a Japanese reader, an IME, a language-learning app, or anything that needs to look up words *fast* — this is for you.
 
-### [jmdict-fast](./jmdict-fast/)
+---
 
-A **blazing-fast Japanese dictionary engine** powered by FST (finite state transducer) indexing.
+## ✨ Features
 
-- Supports kanji, kana, and romaji lookups
-- Achieves **O(log n)** search performance
-- Uses memory-mapped data with zero allocations
-- Built from the official **JMdict** dictionary dataset
-- Two modes: **embedded** (data baked into binary) or **runtime-loaded** (from filesystem)
+- **⚡ Instant lookups** — O(log n) exact matching across kanji, kana, and romaji (~4 µs per lookup)
+- **🔎 Multimodal search** — exact, prefix, fuzzy, and English-gloss reverse lookup
+- **🪶 Memory-mapped** — zero-copy access, no upfront read into a `Vec`, no allocations during lookup
+- **🧠 Deinflection-aware** — finds `食べる` from `食べます` via the bundled [bunpo](./bunpo/) deinflector
+- **📦 Two loading modes** — embedded (data baked into the binary) or runtime-loaded (from filesystem)
+- **🏷️ Full JMdict data** — antonyms, dialects, field tags, cross-references, JMdict IDs
+- **🎯 Filterable queries** — by part-of-speech, misc tag, field, dialect, common-only, with limits and edit distance
 
-### [bunpo](./bunpo/)
+---
 
-A **lightweight deinflection engine** for Japanese verbs and adjectives.
+## 🏎️ Performance at a Glance
 
-- Rule-based conjugation reversal
-- Zero external dependencies
-- Integrated with `jmdict-fast` for conjugation-aware lookups
+| Metric            | Value                          |
+|-------------------|--------------------------------|
+| **Index size**    | ~888 KB (FSTs)                 |
+| **Data size**     | ~16 MB binary blob             |
+| **Lookup speed**  | O(log n), ~4 µs                |
+| **Memory usage**  | Memory-mapped, zero allocations |
 
-### xtask
+### Side-by-side vs [`jmdict`](https://crates.io/crates/jmdict)
 
-Build tooling for generating dictionary data files from the JMdict source.
+The bundled Criterion bench ([`jmdict-fast/benches/lookup_word.rs`](./jmdict-fast/benches/lookup_word.rs)) looks up `猫` against both crates on the same machine:
 
-## Quick Start
+| Crate                                              | Approach                                | Time per lookup | Relative      |
+|----------------------------------------------------|-----------------------------------------|-----------------|---------------|
+| **`jmdict-fast` (this)**                           | FST index + memory-mapped binary blob   | **~4.06 µs**    | **1×**        |
+| [`jmdict`](https://crates.io/crates/jmdict) v2.x   | Linear filter over `entries()` iterator | ~511.96 µs      | ~125× slower  |
 
-### 1. Generate dictionary data
+That's the gap between an O(log n) FST walk and an O(n) full-table scan. Run `cargo bench -p jmdict-fast` to reproduce.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Get the dictionary data
+
+Data files are not bundled with the crate. Generate them locally or grab a pre-built tarball:
 
 ```bash
+# Option A — generate from source (requires network access)
 cargo xtask generate
-```
 
-This downloads JMdict and produces FST indexes and a binary blob in `dist/`.
-
-Or download pre-built data from a [GitHub Release](https://github.com/theGlenn/jmdict-fst/releases):
-
-```bash
-# Download and extract pre-built data (replace versions with the latest release's asset)
+# Option B — download pre-built data from GitHub Releases
 mkdir -p dist
-curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt3.tar.gz | tar xz -C dist/
+curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt3.tar.gz \
+  | tar xz -C dist/
 ```
 
-> The release asset is named `jmdict-data-jmdict<JMDICT_VERSION>-fmt<FORMAT_VERSION>.tar.gz`. The current format version is **4**, which includes the English-gloss reverse-lookup index (`gloss.fst` + `gloss_postings.bin`). Check the [Releases page](https://github.com/theGlenn/jmdict-fst/releases) for current values.
+> Release assets are named `jmdict-data-jmdict<JMDICT_VERSION>-fmt<FORMAT_VERSION>.tar.gz`. The current format version is **4** (adds the English-gloss reverse-lookup index). Check the [Releases page](https://github.com/theGlenn/jmdict-fst/releases) for current values.
 
-### 2. Use the library
-
-Add to your `Cargo.toml`:
+### 2. Add the dependency
 
 ```toml
 [dependencies]
 jmdict-fast = "0.1.1"
-bunpo = "0.1.1"  # Optional - only needed for conjugation handling
 ```
 
-#### Runtime-loaded mode (default)
-
-Point `JMDICT_DATA` to your data directory, or place data files in `dist/`:
+### 3. Look things up
 
 ```rust
 use jmdict_fast::Dict;
@@ -74,24 +82,24 @@ fn main() -> anyhow::Result<()> {
     let dict = Dict::load_default()?;
 
     // Exact lookup
-    let results = dict.lookup_exact("猫");
-    for entry in &results {
+    for entry in dict.lookup_exact("猫") {
         println!("{}: {}", entry.kanji[0].text, entry.sense[0].gloss[0].text);
     }
 
     // Prefix search
-    let results = dict.lookup_partial("こんに");
+    let _ = dict.lookup_partial("こんに");
 
-    // With deinflection (finds 食べる from 食べます)
-    let results = dict.lookup_exact_with_deinflection("食べます");
+    // Deinflection-aware (finds 食べる from 食べます)
+    let _ = dict.lookup_exact_with_deinflection("食べます");
+
+    // Reverse lookup by English gloss
+    let _ = dict.lookup_gloss("to eat");
 
     Ok(())
 }
 ```
 
-#### Embedded mode (data baked into binary)
-
-Enable the `embedded` feature to compile data directly into the binary:
+### Embedded mode (data baked into the binary)
 
 ```toml
 [dependencies]
@@ -99,40 +107,52 @@ jmdict-fast = { version = "0.1.1", features = ["embedded"] }
 ```
 
 ```rust
-use jmdict_fast::Dict;
-
-fn main() -> anyhow::Result<()> {
-    // Data is compiled in - no filesystem access needed
-    let dict = Dict::load_embedded()?;
-    let results = dict.lookup_exact("猫");
-    Ok(())
-}
+let dict = jmdict_fast::Dict::load_embedded()?;
 ```
 
-> **Note:** The `embedded` feature requires data files in `dist/` at compile time. Run `cargo xtask generate` first.
+> Requires data files in `dist/` at compile time. Run `cargo xtask generate` first.
 
-## Migration from embedded-only API
+See the **[jmdict-fast crate README](./jmdict-fast/)** for the full API reference.
 
-Previous versions always embedded dictionary data via `include_bytes!` in the build script. The new architecture separates data generation from compilation:
+---
 
-1. **Data generation** is now handled by `cargo xtask generate` (not `build.rs`)
-2. **Embedded mode** is opt-in via the `embedded` Cargo feature flag
-3. **Runtime loading** is the new default - point `JMDICT_DATA` to your data directory or use `Dict::load("path/to/data")`
-4. `Dict::load_default()` automatically tries: embedded (if feature enabled) → `JMDICT_DATA` env var → `dist/` directory
+## 📦 Repository Layout
 
-## Environment Variables
+The core of the project is **[`jmdict-fast`](./jmdict-fast/)**. Everything else is either a supporting library or a higher-level wrapper.
+
+| Crate | Role |
+|---|---|
+| **[`jmdict-fast`](./jmdict-fast/)** | The dictionary engine. The thing you probably want. |
+| [`bunpo`](./bunpo/) | Lightweight, zero-dependency deinflection engine. Used by `jmdict-fast` for conjugation handling, but also publishable on its own. |
+| [`jmdict-fast-ffi`](./jmdict-fast-ffi/) | FFI-agnostic facade crate — the foundation for non-Rust bindings. |
+| [`jmdict-fast-bolt`](./jmdict-fast-bolt/) | BoltFFI bindings for Swift, Kotlin, Java, C#, and WASM. |
+| [`jmdict-fast-flutter`](./jmdict-fast-flutter/) | Flutter bindings via `flutter_rust_bridge`, with an end-to-end example app. |
+| `xtask` | Build tooling: downloads JMdict and produces the FST indexes + binary blob. |
+
+---
+
+## 🔧 Loading Behavior
+
+`Dict::load_default()` tries sources in order:
+
+1. **Embedded data** (if the `embedded` feature is enabled)
+2. **`JMDICT_DATA`** env var — path to a directory with data files
+3. **`dist/`** relative to the current directory
+4. **`dist/`** relative to the workspace root
+
+You can also load from an explicit path: `Dict::load("/path/to/data")?`.
 
 | Variable | Description |
-|----------|-------------|
-| `JMDICT_DATA` | Path to directory containing FST and entries.bin files |
-
-## Feature Flags
+|---|---|
+| `JMDICT_DATA` | Path to directory containing FST and `entries.bin` files |
 
 | Feature | Description |
-|---------|-------------|
+|---|---|
 | `embedded` | Bake dictionary data into the binary via `include_bytes!` |
 
-## Releases
+---
+
+## 📦 Releases
 
 Releases are automated by [release-plz](https://release-plz.dev/). On every push to `main`, a "Release PR" is opened (or refreshed) that bumps versions in `Cargo.toml`, regenerates `CHANGELOG.md` from the conventional-commit history, and updates inter-crate dependencies. Merging that PR triggers the publish step, which:
 
@@ -149,12 +169,22 @@ Required repository secrets:
 
 `xtask` is marked `publish = false` and excluded from `release-plz.toml`, so it never gets bumped or published.
 
-## License
+---
 
-MIT License - see [LICENSE](./LICENSE)
+## 🤝 Contributing
 
-## Acknowledgments
+Issues, PRs, and ideas welcome — especially around new lookup modes, FFI ergonomics, or data quality. Fork, branch, test, PR.
 
-- **JMdict** - The source dictionary data - see [EDRDG DICTIONARY LICENCE STATEMENT](https://www.edrdg.org/edrdg/licence.html)
-- **FST crate** - Fast finite state transducer implementation
-- [10ten Japanese Reader](https://github.com/birchill/10ten-ja-reader) for their deinflector implementation
+## 📄 License
+
+MIT License — see [LICENSE](./LICENSE).
+
+## 🙏 Acknowledgments
+
+- **JMdict** — the source dictionary data. See the [EDRDG dictionary licence statement](https://www.edrdg.org/edrdg/licence.html).
+- **[fst](https://crates.io/crates/fst)** — the underlying finite-state-transducer crate.
+- **[10ten Japanese Reader](https://github.com/birchill/10ten-ja-reader)** — for their deinflector implementation, which inspired `bunpo`.
+
+---
+
+**Built with ❤️ and Rust** 🦀
