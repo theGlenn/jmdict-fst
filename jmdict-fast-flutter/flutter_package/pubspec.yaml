@@ -1,6 +1,6 @@
 name: jmdict_fast
 description: "Blazing-fast Japanese dictionary engine for Flutter — FST-indexed lookup, gloss reverse search, deinflection, one-call install."
-version: 0.1.0
+version: 0.1.4
 homepage: https://github.com/theGlenn/jmdict-fst
 repository: https://github.com/theGlenn/jmdict-fst
 issue_tracker: https://github.com/theGlenn/jmdict-fst/issues
@@ -12,7 +12,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_rust_bridge: 2.11.1
+  # Caret range, not an exact pin: pub.dev penalises packages that
+  # tightly bound their deps, and FRB is API-stable within 2.x.
+  flutter_rust_bridge: ^2.11.1
   # plugin_platform_interface is the standard contract every Flutter
   # plugin implements; required even for FFI-only plugins because
   # pub.dev validates its presence in the analysis pass.

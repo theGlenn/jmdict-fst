@@ -1,0 +1,14 @@
+# Pub.dev complains about checked-in files that .gitignore covers; an
+# explicit .pubignore tells the publisher to skip them while keeping
+# them present locally for developers running the example. These are
+# all regeneratable Flutter / Cocoapods state.
+example/.dart_tool/
+example/build/
+example/pubspec.lock
+example/ios/Pods/
+example/ios/Podfile.lock
+example/macos/Pods/
+example/macos/Podfile.lock
+example/android/.gradle/
+example/android/build/
+example/android/app/build/
