@@ -1,0 +1,23 @@
+jmdict-fast-flutter/.gitignore
+  s_e5745ca407912d::t_e421b995919d13 1-4,6-14
+jmdict-fast-flutter/src/lib.rs
+  s_e5745ca407912d::t_925b5dcce9c940 5-10,12-17
+jmdict-fast-flutter/src/frb_generated.rs
+  ai_agent 1-2697
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "72ce32d2720f6271cdabda9c158dc9d84898bd72",
+  "prompts": {},
+  "sessions": {
+    "s_e5745ca407912d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "04ad7dc4-1b77-43cd-aed7-9b868482f13e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
