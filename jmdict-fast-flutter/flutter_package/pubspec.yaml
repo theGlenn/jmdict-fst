@@ -1,6 +1,6 @@
 name: jmdict_fast
 description: "Blazing-fast Japanese dictionary engine for Flutter — FST-indexed lookup, gloss reverse search, deinflection, one-call install."
-version: 0.1.4
+version: 0.1.5
 homepage: https://github.com/theGlenn/jmdict-fst
 repository: https://github.com/theGlenn/jmdict-fst
 issue_tracker: https://github.com/theGlenn/jmdict-fst/issues
@@ -23,6 +23,11 @@ dependencies:
   # codegen; FRB emits sealed classes that derive from it, so consumers
   # need it in their dep tree.
   freezed_annotation: ^2.4.4
+  # path_provider is used internally by `JmdictFast.install()` to find a
+  # writable cache directory (Application Support on iOS/macOS, internal
+  # files on Android, etc.) without the consumer having to wire it up
+  # themselves. Advanced users that pass `cacheDir:` skip this code path.
+  path_provider: ^2.1.0
 
 dev_dependencies:
   flutter_lints: ^2.0.0
