@@ -1,0 +1,23 @@
+jmdict-fast/Cargo.toml
+  s_02666c14d3cbab::t_603e5211e730b6 22
+Cargo.lock
+  ai_agent 1196
+jmdict-fast/CHANGELOG.md
+  s_02666c14d3cbab::t_91ec67133a9809 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "3b26bbed8333b02c61c26a1610a9c3d221411cd3",
+  "prompts": {},
+  "sessions": {
+    "s_02666c14d3cbab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2110cc25-d5fc-45ce-a351-f7c1f751d1d8",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
