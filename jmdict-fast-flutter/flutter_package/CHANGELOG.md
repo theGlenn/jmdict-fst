@@ -17,7 +17,8 @@ two separate version axes.
 - Lookup surface: `lookupExact`, `lookupPartial`,
   `lookupExactWithDeinflection`, `lookupGloss`, `lookupById`,
   `lookupWithOptions`, `lookupBatch`, `resolveXref`.
-- Browsing: `get(seqId)`, `iterEntries(start, count)`.
+- Browsing: `get_(seqId)`, `iterEntries(start, count)`. (`get` is
+  reserved in Dart, so FRB suffixes with `_`.)
 - `QueryOptions` with `MatchMode`, `commonOnly`, POS / misc / field /
   dialect filters, `limit`, `maxDistance` for fuzzy.
 - Typed `Error` enum (DataNotFound, DataVersionMismatch, DataCorrupted,
