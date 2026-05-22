@@ -1,0 +1,27 @@
+name: example
+description: "Validation app for the jmdict_fast Flutter package."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.3.0
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Consume the parent package via a path dep — this is the same way a
+  # downstream Flutter app would consume the published `jmdict_fast`
+  # package, and it lets us validate the full pipeline (cargokit build
+  # of the Rust crate, FFI lookup, Dart wrapper) end-to-end.
+  jmdict_fast:
+    path: ..
+  path_provider: ^2.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
