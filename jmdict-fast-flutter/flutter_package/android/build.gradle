@@ -1,7 +1,7 @@
 // The Android Gradle Plugin builds the native code with the Android NDK.
 
 group 'com.github.theglenn.jmdict_fast'
-version '0.1.0'
+version '0.1.5'
 
 buildscript {
     repositories {
@@ -51,7 +51,8 @@ android {
 
 apply from: "../cargokit/gradle/plugin.gradle"
 cargokit {
-    // Binding crate sits two levels up from `flutter_package/android/`.
-    manifestDir = "../../"
+    // Binding crate is vendored at `flutter_package/rust/` so it ships
+    // with the published pub.dev tarball.
+    manifestDir = "../rust/"
     libname = "jmdict_fast_flutter"
 }

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.5
+
+- **Fix broken pub.dev build.** The Rust binding crate now lives at
+  `flutter_package/rust/` so it ships inside the published tarball.
+  Previously the cargokit script reached for `../../` and landed
+  outside the package (`PathNotFoundException: …/.pub-cache/…/Cargo.toml`),
+  which made `flutter pub add jmdict_fast` fail at build time.
+- **`JmdictFast.install()` one-call entry point.** Wraps
+  `WidgetsFlutterBinding.ensureInitialized()`, `RustLib.init()`,
+  cache-directory discovery via `path_provider`, and `Dict.installWith`
+  into a single `await`. `cacheDir`, `source`, and `force` are still
+  overridable for advanced users. Consumers no longer need to know that
+  FRB exists to use the package.
+- **`entryCountInt()` extension.** Returns a Dart `int` instead of
+  the FRB-generated `BigInt` for the common case where the count fits
+  in `2^53` (JMdict has ~200k entries).
+- `path_provider` is now a direct dependency.
+
 ## 0.1.4
 
 First public release. Version aligned with the underlying

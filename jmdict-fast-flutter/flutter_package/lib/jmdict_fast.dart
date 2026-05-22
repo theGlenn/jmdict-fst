@@ -1,24 +1,27 @@
 /// Public entry point for the `jmdict_fast` Flutter package.
 ///
-/// Re-exports the FRB-generated surface so consumers only need
-/// `import 'package:jmdict_fast/jmdict_fast.dart';` to reach `Dict`,
-/// the install API, error types, and the data records.
-///
-/// Initialise the bridge once at app startup:
+/// The one-call install path:
 ///
 /// ```dart
-/// await RustLib.init();
+/// import 'package:jmdict_fast/jmdict_fast.dart';
+///
+/// void main() async {
+///   final dict = await JmdictFast.install();
+///   runApp(MyApp(dict: dict));
+/// }
 /// ```
 ///
-/// Then register a writable cache directory before any install call:
+/// [JmdictFast.install] handles `WidgetsFlutterBinding.ensureInitialized()`,
+/// `flutter_rust_bridge` initialisation, cache-directory discovery via
+/// `path_provider`, and the download in one call. On a warm cache it
+/// resolves in milliseconds; on a cold cache it pulls ~21 MB.
 ///
-/// ```dart
-/// final dir = await getApplicationSupportDirectory();
-/// initSdkCacheDir(path: dir.path);
-/// final dict = await Dict.install();
-/// ```
+/// Advanced users that need fine-grained control can still call the
+/// individual primitives — [RustLib.init], [initSdkCacheDir], and the
+/// [Dict] static `install*` methods — directly.
 library;
 
+export 'src/jmdict_fast_facade.dart' show JmdictFast, DictX;
 export 'src/frb_generated.dart' show RustLib;
 
 export 'src/api/dictionary.dart';
