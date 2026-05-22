@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/theGlenn/jmdict-fst/compare/jmdict-fast-v0.1.3...jmdict-fast-v0.1.4) - 2026-05-22
+
+### Other
+
+- comparison vs jisho and jmdict (lookup, startup, RSS, features) ([#21](https://github.com/theGlenn/jmdict-fst/pull/21))
+
 ## [0.1.3](https://github.com/theGlenn/jmdict-fst/compare/jmdict-fast-v0.1.2...jmdict-fast-v0.1.3) - 2026-05-14
 
 ### Added

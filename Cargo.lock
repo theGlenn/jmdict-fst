@@ -317,12 +317,12 @@ checksum = "5d20789868f4b01b2f2caec9f5c4e0213b41e3e5702a50157d699ae31ced2fcb"
 [[package]]
 name = "bunpo"
 version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa43b991d3539bdff69d953f6133522d8e9b8f4830063e93c390e6bf19df3701"
 
 [[package]]
 name = "bunpo"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa43b991d3539bdff69d953f6133522d8e9b8f4830063e93c390e6bf19df3701"
+version = "0.1.4"
 
 [[package]]
 name = "bytemuck"
@@ -593,9 +593,9 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "crypto-common"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bfb12502f3fc46cca1bb51ac28df9d618d813cdc3d2f25b9fe775a34af26bb3"
+checksum = "78c8292055d1c1df0cce5d180393dc8cce0abec0a7102adb6c7b1eef6016d60a"
 dependencies = [
  "generic-array",
  "typenum",
@@ -713,9 +713,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.15.0"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
+checksum = "91622ff5e7162018101f2fea40d6ebf4a78bbe5a49736a2020649edf9693679e"
 
 [[package]]
 name = "embedded-io"
@@ -979,9 +979,9 @@ dependencies = [
 
 [[package]]
 name = "generic-array"
-version = "0.14.9"
+version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bb6743198531e02858aeaea5398fcc883e71851fcbcb5a2f773e2fb6cb1edf2"
+checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
@@ -1021,9 +1021,9 @@ checksum = "e629b9b98ef3dd8afe6ca2bd0f89306cec16d43d907889945bc5d6687f2f13c7"
 
 [[package]]
 name = "glam"
-version = "0.32.1"
+version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f70749695b063ecbf6b62949ccccde2e733ec3ecbbd71d467dca4e5c6c97cca0"
+checksum = "8fb167719045debebe9f532320accc7b5c993c5a3b813f5696a11d5ca7bdc57b"
 
 [[package]]
 name = "h2"
@@ -1438,9 +1438,9 @@ dependencies = [
 
 [[package]]
 name = "jmdict-fast"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
- "bunpo 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bunpo 0.1.3",
  "criterion",
  "deunicode",
  "dirs",
@@ -1461,7 +1461,7 @@ dependencies = [
 
 [[package]]
 name = "jmdict-fast-bolt"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "boltffi",
  "jmdict-fast-ffi",
@@ -1469,7 +1469,7 @@ dependencies = [
 
 [[package]]
 name = "jmdict-fast-ffi"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "jmdict-fast",
 ]
@@ -1490,7 +1490,7 @@ dependencies = [
 
 [[package]]
 name = "jmdict_fast_flutter"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "flutter_rust_bridge",
  "jmdict-fast-ffi",
@@ -2227,9 +2227,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.149"
+version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83fc039473c5595ace860d8c4fafa220ff474b3fc6bfdb4293327f1a37e94d86"
+checksum = "e8014e44b4736ed0538adeecded0fce2a272f22dc9578a7eb6b2d9993c74cfb9"
 dependencies = [
  "itoa",
  "memchr",
@@ -2406,9 +2406,9 @@ dependencies = [
 
 [[package]]
 name = "tar"
-version = "0.4.45"
+version = "0.4.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22692a6476a21fa75fdfc11d452fda482af402c008cdbaf3476414e122040973"
+checksum = "3f6221d9a6003c78398e3b239969f352578258df48c8eb051caadae0015bc840"
 dependencies = [
  "filetime",
  "libc",
@@ -3225,7 +3225,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "chrono",
