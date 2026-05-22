@@ -1,0 +1,27 @@
+jmdict-fast-flutter/example/README.md
+  s_e5745ca407912d::t_4e756967093cb2 1,3-5,7,9-11,13-14,16,18-34
+jmdict-fast-flutter/README.md
+  s_e5745ca407912d::t_ad99fe77590f22 3,5-15,19-20
+  s_e5745ca407912d::t_46a340d791d0fe 97-103,105,107
+README.md
+  s_e5745ca407912d::t_b9819dd8676750 261
+  s_e5745ca407912d::t_79d202684eb7e0 218
+jmdict-fast-flutter/flutter_package/example/README.md
+  s_e5745ca407912d::t_b0c9b5e14373d4 1,3-5,7-8,10-15,17-18,20,22-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "159da272458259cff4d62f3f89c42d48771eea7f",
+  "prompts": {},
+  "sessions": {
+    "s_e5745ca407912d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "04ad7dc4-1b77-43cd-aed7-9b868482f13e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
