@@ -1,12 +1,14 @@
-# flutter_rust_bridge_codegen output — generated locally / in CI, never
-# hand-edited. See README for the regeneration command.
-/src/frb_generated.rs
-/src/frb_generated.io.rs
-/src/frb_generated.web.rs
-/dart/lib/src/
+# Local pubspec lock for the validation example — `flutter pub get` writes
+# it on each developer's machine; committing it would churn on every
+# Flutter SDK update.
+/flutter_package/example/pubspec.lock
 
-# Dart tooling
-/dart/.dart_tool/
-/dart/.packages
-/dart/pubspec.lock
-/dart/build/
+# Flutter pub tooling state
+/flutter_package/example/.dart_tool/
+/flutter_package/.dart_tool/
+
+# Cocoapods state for the validation example
+/flutter_package/example/ios/Pods/
+/flutter_package/example/macos/Pods/
+/flutter_package/example/ios/Podfile.lock
+/flutter_package/example/macos/Podfile.lock
