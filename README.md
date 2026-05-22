@@ -215,7 +215,7 @@ The core of the project is **[`jmdict-fast`](./jmdict-fast/)**. Everything else 
 | [`bunpo`](./bunpo/) | Lightweight, zero-dependency deinflection engine. Used by `jmdict-fast` for conjugation handling, but also publishable on its own. |
 | [`jmdict-fast-ffi`](./jmdict-fast-ffi/) | FFI-agnostic facade crate. The foundation for non-Rust bindings. |
 | [`jmdict-fast-bolt`](./jmdict-fast-bolt/) | BoltFFI bindings for Swift, Kotlin, Java, C#, and WASM. |
-| [`jmdict-fast-flutter`](./jmdict-fast-flutter/) | Flutter bindings via `flutter_rust_bridge`. The Rust binding crate is the source; the published Dart package lives at [`jmdict-fast-flutter/flutter_package/`](./jmdict-fast-flutter/flutter_package/) — [pub.dev/packages/jmdict_fast](https://pub.dev/packages/jmdict_fast). |
+| [`jmdict-fast-flutter`](./jmdict-fast-flutter/) | Flutter bindings via `flutter_rust_bridge`. The published Dart package lives at [`flutter_package/`](./jmdict-fast-flutter/flutter_package/) with the Rust binding crate vendored under [`flutter_package/rust/`](./jmdict-fast-flutter/flutter_package/rust/) so the pub.dev tarball is self-contained — [pub.dev/packages/jmdict_fast](https://pub.dev/packages/jmdict_fast). |
 | `xtask` | Build tooling: downloads JMdict and produces the FST indexes + binary blob. |
 
 ---
@@ -258,7 +258,7 @@ Required repository secrets:
 
 `xtask` is marked `publish = false` and excluded from `release-plz.toml`, so it never gets bumped or published.
 
-**Pub.dev (Flutter)** is a manual step. After a crate release ships, run `cd jmdict-fast-flutter/flutter_package && flutter pub publish` from a machine with pub credentials. The Dart package version is kept in lock-step with the Rust crate version so consumers reason about a single number.
+**Pub.dev (Flutter)** is a manual step. After a crate release ships, run `cd jmdict-fast-flutter/flutter_package && flutter pub publish` from a machine with pub credentials. The Dart package version generally tracks the Rust crate version, but they can drift independently — e.g. 0.1.5 was a Dart-only hotfix for a pub.dev build path.
 
 ---
 
