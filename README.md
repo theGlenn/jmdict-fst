@@ -184,25 +184,20 @@ See the **[jmdict-fast crate README](./jmdict-fast/)** for the full API referenc
 `jmdict_fast` is on pub.dev: [pub.dev/packages/jmdict_fast](https://pub.dev/packages/jmdict_fast).
 
 ```sh
-flutter pub add jmdict_fast path_provider
+flutter pub add jmdict_fast
 ```
 
 ```dart
 import 'package:jmdict_fast/jmdict_fast.dart';
-import 'package:path_provider/path_provider.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await RustLib.init();
-
-  // Required on iOS/Android/WASM — supplies a writable cache root.
-  final dir = await getApplicationSupportDirectory();
-  initSdkCacheDir(path: dir.path);
-
-  // First run downloads ~21 MB; subsequent runs are mmap-only.
-  final dict = await Dict.install();
+  // One call. JmdictFast.install handles WidgetsFlutterBinding,
+  // flutter_rust_bridge init, cache-directory discovery (via
+  // path_provider, bundled with the package), and the download.
+  // First run pulls ~21 MB; subsequent runs are mmap-only.
+  final dict = await JmdictFast.install();
   final hits = await dict.lookupExact(term: '猫');
-  print('${hits.length} hits for 猫 across ${await dict.entryCount()} entries');
+  print('${hits.length} hits for 猫 across ${await dict.entryCountInt()} entries');
 }
 ```
 
