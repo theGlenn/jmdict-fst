@@ -1,0 +1,65 @@
+jmdict-fast-flutter/flutter_package/README.md
+  s_ebdeda3721d96b::t_f3885b8a85a0ca 9,13-21,23,25,29-30,34-43,49-51,60-66
+jmdict-fast-flutter/flutter_package/rust/tests/smoke.rs
+  s_ebdeda3721d96b::t_29248fea9de1c5 19-22
+jmdict-fast-flutter/flutter_package/rust/Cargo.toml
+  s_ebdeda3721d96b::t_44a9239abd6c9e 52
+  s_ebdeda3721d96b::t_f04f20d5e49834 12-15
+  s_ebdeda3721d96b::t_5ab4e91eb1f024 1-7,17-21
+jmdict-fast-flutter/flutter_package/rust/src/lib.rs
+  s_ebdeda3721d96b::t_6f72792fb3df6d 4-6
+jmdict-fast-flutter/README.md
+  s_ebdeda3721d96b::t_f77a0de5a1be7b 23-42,45-51
+  s_ebdeda3721d96b::t_3e3e2f8b44a8c6 80-81,87-90
+jmdict-fast-flutter/flutter_package/ios/jmdict_fast.podspec
+  s_ebdeda3721d96b::t_ba9a8262f6f00f 29-31
+  s_ebdeda3721d96b::t_4cd275994e228f 7
+release-plz.toml
+  s_ebdeda3721d96b::t_8e2f31b328a1fb 38-41
+jmdict-fast-flutter/flutter_package/example/lib/main.dart
+  s_ebdeda3721d96b::t_123e60c86c1c65 5-6,31,42,45
+jmdict-fast-flutter/flutter_package/pubspec.yaml
+  s_ebdeda3721d96b::t_5165273cded79c 26-30
+  s_ebdeda3721d96b::t_79ba05e482be86 3
+jmdict-fast-flutter/example/rust/Cargo.toml
+  s_ebdeda3721d96b::t_a49e89d16badf0 26
+jmdict-fast-flutter/flutter_package/macos/jmdict_fast.podspec
+  s_ebdeda3721d96b::t_df0006925c3c27 31-33
+  s_ebdeda3721d96b::t_ea1a640cb23fb4 7
+jmdict-fast-flutter/flutter_package/lib/jmdict_fast.dart
+  s_ebdeda3721d96b::t_b59cf35d813181 24
+  s_ebdeda3721d96b::t_a1011b5bcf28cd 3,6-11,14-17,19-21
+jmdict-fast-flutter/flutter_package/windows/CMakeLists.txt
+  s_ebdeda3721d96b::t_89edbeaa62058d 6-9,11
+jmdict-fast-flutter/flutter_package/lib/src/jmdict_fast_facade.dart
+  s_ebdeda3721d96b::t_985298e6d2aece 32-45
+  s_ebdeda3721d96b::t_62be6106add15a 78
+  s_ebdeda3721d96b::t_5041d1bcb7ee50 1-31,46-77,79-91
+jmdict-fast-flutter/flutter_package/android/build.gradle
+  s_ebdeda3721d96b::t_67f13e64f15b43 4
+  s_ebdeda3721d96b::t_e5ba3555d92899 54-56
+jmdict-fast-flutter/flutter_package/.pubignore
+  s_ebdeda3721d96b::t_5f16b780d31954 4,15-19
+jmdict-fast-flutter/flutter_package/rust/flutter_rust_bridge.yaml
+  s_ebdeda3721d96b::t_c6e5e0cd93e37c 3-15
+jmdict-fast-flutter/flutter_package/linux/CMakeLists.txt
+  s_ebdeda3721d96b::t_029397182bab44 7,9
+jmdict-fast-flutter/flutter_package/CHANGELOG.md
+  s_ebdeda3721d96b::t_83bc5687d05444 3-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "5af249af200addbb2da65849d1a797e6aa2a5f42",
+  "prompts": {},
+  "sessions": {
+    "s_ebdeda3721d96b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1cd58cf6-65ef-4036-b6d4-4e6e13a1d337",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
