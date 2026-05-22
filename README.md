@@ -10,7 +10,7 @@
 **SDK bindings:**
 [![Swift / SPM](https://img.shields.io/badge/SPM-coming%20soon-lightgrey?logo=swift&logoColor=white)](#-repository-layout)
 [![Kotlin / Maven](https://img.shields.io/badge/Kotlin-coming%20soon-lightgrey?logo=kotlin&logoColor=white)](#-repository-layout)
-[![Flutter / pub.dev](https://img.shields.io/badge/pub.dev-coming%20soon-lightgrey?logo=flutter&logoColor=white)](#-repository-layout)
+[![Flutter / pub.dev](https://img.shields.io/pub/v/jmdict_fast.svg?label=jmdict_fast&logo=flutter&logoColor=white)](https://pub.dev/packages/jmdict_fast)
 [![Python / PyPI](https://img.shields.io/badge/PyPI-coming%20soon-lightgrey?logo=python&logoColor=white)](#-repository-layout)
 [![JavaScript / npm](https://img.shields.io/badge/npm-coming%20soon-lightgrey?logo=npm&logoColor=white)](#-repository-layout)
 
@@ -103,13 +103,21 @@ To reproduce: run `cargo bench -p jmdict-fast --features embedded` for the looku
 
 ### 1. Get the dictionary data
 
-Data files are not bundled with the crate. Generate them locally or grab a pre-built tarball:
+Three ways, from least to most setup:
+
+```rust
+// Option A: let the library do it — downloads the matching tarball
+// into the platform cache and loads it. Needs the `install` feature.
+let dict = jmdict_fast::Dict::install()?;
+```
 
 ```bash
-# Option A: generate from source (requires network access)
+# Option B: generate from source (one-time, requires network)
 cargo xtask generate
+```
 
-# Option B: download pre-built data from GitHub Releases
+```bash
+# Option C: download the prebuilt tarball yourself
 mkdir -p dist
 curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-data-jmdict3.6.1-fmt4.tar.gz \
   | tar xz -C dist/
@@ -121,7 +129,7 @@ curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-d
 
 ```toml
 [dependencies]
-jmdict-fast = "0.1.1"
+jmdict-fast = "0.1.4"
 ```
 
 ### 3. Look things up
@@ -156,7 +164,7 @@ fn main() -> anyhow::Result<()> {
 
 ```toml
 [dependencies]
-jmdict-fast = { version = "0.1.1", features = ["embedded"] }
+jmdict-fast = { version = "0.1.4", features = ["embedded"] }
 ```
 
 ```rust
@@ -166,6 +174,37 @@ let dict = jmdict_fast::Dict::load_embedded()?;
 > Requires data files in `dist/` at compile time. Run `cargo xtask generate` first.
 
 See the **[jmdict-fast crate README](./jmdict-fast/)** for the full API reference.
+
+---
+
+## 📱 Flutter
+
+`jmdict_fast` is on pub.dev: [pub.dev/packages/jmdict_fast](https://pub.dev/packages/jmdict_fast).
+
+```sh
+flutter pub add jmdict_fast path_provider
+```
+
+```dart
+import 'package:jmdict_fast/jmdict_fast.dart';
+import 'package:path_provider/path_provider.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await RustLib.init();
+
+  // Required on iOS/Android/WASM — supplies a writable cache root.
+  final dir = await getApplicationSupportDirectory();
+  initSdkCacheDir(path: dir.path);
+
+  // First run downloads ~21 MB; subsequent runs are mmap-only.
+  final dict = await Dict.install();
+  final hits = await dict.lookupExact(term: '猫');
+  print('${hits.length} hits for 猫 across ${await dict.entryCount()} entries');
+}
+```
+
+The package is built directly on `jmdict-fast` via [flutter_rust_bridge](https://pub.dev/packages/flutter_rust_bridge) — no on-device database, no first-launch import step. See [`jmdict-fast-flutter/flutter_package/example/`](./jmdict-fast-flutter/flutter_package/example/) for a runnable validation app and [`jmdict-fast-flutter/example/`](./jmdict-fast-flutter/example/) for a fuller search demo with prefix / gloss modes.
 
 ---
 
@@ -179,7 +218,7 @@ The core of the project is **[`jmdict-fast`](./jmdict-fast/)**. Everything else 
 | [`bunpo`](./bunpo/) | Lightweight, zero-dependency deinflection engine. Used by `jmdict-fast` for conjugation handling, but also publishable on its own. |
 | [`jmdict-fast-ffi`](./jmdict-fast-ffi/) | FFI-agnostic facade crate. The foundation for non-Rust bindings. |
 | [`jmdict-fast-bolt`](./jmdict-fast-bolt/) | BoltFFI bindings for Swift, Kotlin, Java, C#, and WASM. |
-| [`jmdict-fast-flutter`](./jmdict-fast-flutter/) | Flutter bindings via `flutter_rust_bridge`, with an end-to-end example app. |
+| [`jmdict-fast-flutter`](./jmdict-fast-flutter/) | Flutter bindings via `flutter_rust_bridge`. The Rust binding crate is the source; the published Dart package lives at [`jmdict-fast-flutter/flutter_package/`](./jmdict-fast-flutter/flutter_package/) — [pub.dev/packages/jmdict_fast](https://pub.dev/packages/jmdict_fast). |
 | `xtask` | Build tooling: downloads JMdict and produces the FST indexes + binary blob. |
 
 ---
@@ -221,6 +260,8 @@ Required repository secrets:
 | `RELEASE_PLZ_TOKEN` | GitHub PAT (or App token) with `pull-requests: write` and `contents: write`. Effectively required for the end-to-end flow above: GitHub does not fire downstream workflows from events created by the default `GITHUB_TOKEN`, so without this secret the Release PR will not run `ci.yml` and the published GitHub Release will not run `release.yml` (the dictionary-data tarball will not be attached automatically). The workflow falls back to `GITHUB_TOKEN` if unset, which is fine if you intend to attach the tarball by hand. |
 
 `xtask` is marked `publish = false` and excluded from `release-plz.toml`, so it never gets bumped or published.
+
+**Pub.dev (Flutter)** is a manual step. After a crate release ships, run `cd jmdict-fast-flutter/flutter_package && flutter pub publish` from a machine with pub credentials. The Dart package version is kept in lock-step with the Rust crate version so consumers reason about a single number.
 
 ---
 

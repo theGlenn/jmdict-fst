@@ -72,7 +72,7 @@ This produces seven files in `dist/`: `kana.fst`, `kanji.fst`, `romaji.fst`, `id
 
 ```toml
 [dependencies]
-jmdict-fast = "0.1.1"
+jmdict-fast = "0.1.4"
 ```
 
 ### 3. Use the library
@@ -111,7 +111,7 @@ Bake data into your binary at compile time:
 
 ```toml
 [dependencies]
-jmdict-fast = { version = "0.1.1", features = ["embedded"] }
+jmdict-fast = { version = "0.1.4", features = ["embedded"] }
 ```
 
 ```rust
