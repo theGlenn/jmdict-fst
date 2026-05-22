@@ -1,20 +1,23 @@
 # jmdict-fast-flutter
 
-> **Flutter/Dart bindings** for `jmdict-fast` via [flutter_rust_bridge](https://cjycode.com/flutter_rust_bridge/) v2.
+> **Flutter/Dart bindings** for `jmdict-fast` via [flutter_rust_bridge](https://cjycode.com/flutter_rust_bridge/) v2. The actual pub.dev package is at [`flutter_package/`](./flutter_package/) — published as `jmdict_fast` ([pub.dev/packages/jmdict_fast](https://pub.dev/packages/jmdict_fast)).
 
-A working end-to-end demo lives in [`example/`](./example/) — a small Flutter app that calls `lookup_exact` / `lookup_partial` / `lookup_gloss` through Rust on macOS, iOS, Android, Linux, Windows, and the web. The example was scaffolded with `flutter_rust_bridge_codegen create example` and rewired to consume `jmdict-fast-flutter` via a path dep. To launch:
->
-> ```sh
-> cd jmdict-fast-flutter/example
-> flutter run -d macos      # or `-d chrome`, `-d ios`, `-d android`, etc.
-> ```
->
-> The first screen asks for the path to the JMdict data directory (defaults to `../../dist` — run `cargo xtask generate` from the repo root if you haven't already).
+Two demo apps live in this directory:
+
+- [`flutter_package/example/`](./flutter_package/example/) — a small validation app that consumes the published-style package layout via a path dep. The minimum proof that `flutter pub add jmdict_fast` works end-to-end.
+- [`example/`](./example/) — a fuller search demo (exact / prefix / gloss modes) with its own Rust shim. Consumes the binding crate directly; useful for iterating on the FRB-generated surface.
+
+Both call `JmdictFast.install()` on first launch — one `await` that handles `WidgetsFlutterBinding.ensureInitialized()`, `RustLib.init()`, cache-directory discovery via `path_provider`, and the ~21 MB download of the matching `jmdict-fast` release tarball. To launch either:
+
+```sh
+cd jmdict-fast-flutter/flutter_package/example   # or .../example/
+flutter run -d macos      # or `-d chrome`, `-d ios`, `-d android`, etc.
+```
 
 This crate is the per-generator consumer of [`jmdict-fast-ffi`](../jmdict-fast-ffi/) (the FFI-agnostic facade) for Flutter and Dart. It exposes a flat, Dart-friendly surface that `flutter_rust_bridge_codegen` scans to emit:
 
-- `src/frb_generated.rs` — Rust glue (linked into the cdylib that ships with the host app).
-- `dart/lib/src/…` — Dart bindings (classes, enums, exception types).
+- `flutter_package/rust/src/frb_generated.rs` — Rust glue (linked into the cdylib that ships with the host app).
+- `flutter_package/lib/src/…` — Dart bindings (classes, enums, exception types).
 
 ## Layout
 
@@ -91,14 +94,17 @@ surface that consumers should see.
 
 ## Building the native library for the host app
 
-Each Flutter target wants its own platform-specific binary:
+You don't have to. [cargokit](https://github.com/irondash/cargokit) is vendored under `flutter_package/cargokit/` and wired through the platform-specific build files:
 
-- **iOS / macOS**: `cargo build --release --target aarch64-apple-ios` (etc.), then assemble an XCFramework that the Flutter plugin embeds.
-- **Android**: `cargo build --release --target aarch64-linux-android` (etc.), copy `.so` into `android/src/main/jniLibs/<abi>/`.
-- **Desktop**: `cargo build --release` produces a `.so`/`.dylib`/`.dll` for the host platform.
-- **Web**: `wasm-pack build --target web` (requires the `wasm-start` FRB feature).
+| Platform | Build hook | Triggers |
+|---|---|---|
+| iOS / macOS | `flutter_package/{ios,macos}/jmdict_fast.podspec` `script_phase` | `pod install` during `flutter build` |
+| Android | `flutter_package/android/build.gradle` `apply from cargokit/gradle/plugin.gradle` | Gradle, during `flutter build apk` / `appbundle` |
+| Linux / Windows | `flutter_package/{linux,windows}/CMakeLists.txt` `apply_cargokit(...)` | CMake, during the desktop build |
 
-Once the FRB Flutter plugin scaffolding is in place (one of the things `flutter_rust_bridge_codegen create` produces in fresh projects), the host Flutter app picks the right binary automatically.
+All five point at the binding crate at `flutter_package/rust/`. cargokit invokes the right `cargo build --target ...` per architecture, downloads any missing Rust toolchains via `rustup`, and produces the static/dynamic libs the plugin links. The first run on a clean machine takes a few minutes; subsequent runs are cached.
+
+Web (WASM) isn't wired through cargokit yet — `flutter run -d chrome` works for the existing Dart-side scaffolding but the cdylib isn't compiled to wasm32 in the build matrix.
 
 ## Why the codegen step is not in CI yet
 
