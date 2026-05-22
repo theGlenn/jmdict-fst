@@ -243,12 +243,6 @@ checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
 
 [[package]]
 name = "bunpo"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ec92891d48b222ebda273b02ddd3ec3412cfe0a2e89a32f91505086f61dc526"
-
-[[package]]
-name = "bunpo"
 version = "0.1.5"
 
 [[package]]
@@ -1199,7 +1193,7 @@ dependencies = [
 name = "jmdict-fast"
 version = "0.1.5"
 dependencies = [
- "bunpo 0.1.4",
+ "bunpo",
  "criterion",
  "deunicode",
  "dirs",
