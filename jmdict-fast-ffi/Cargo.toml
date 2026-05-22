@@ -18,4 +18,4 @@ publish = false
 install = ["jmdict-fast/install"]
 
 [dependencies]
-jmdict-fast = { path = "../jmdict-fast", version = "0.1.3" }
+jmdict-fast = { path = "../jmdict-fast", version = "0.1.4" }
