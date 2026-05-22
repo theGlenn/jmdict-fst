@@ -129,7 +129,9 @@ curl -L https://github.com/theGlenn/jmdict-fst/releases/latest/download/jmdict-d
 
 ```toml
 [dependencies]
-jmdict-fast = "0.1.4"
+# Add the `install` feature if you want Option A (the auto-download
+# path) from above. Option B/C work without it.
+jmdict-fast = { version = "0.1.4", features = ["install"] }
 ```
 
 ### 3. Look things up
