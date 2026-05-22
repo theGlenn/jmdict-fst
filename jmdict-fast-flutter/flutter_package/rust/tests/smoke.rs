@@ -17,9 +17,9 @@ fn load() -> Dict {
         p
     } else {
         // `dist/` lives at the workspace root. CARGO_MANIFEST_DIR is
-        // `jmdict-fast-flutter/flutter_package/rust/`, so walk up four levels.
+        // `jmdict-fast-flutter/flutter_package/rust/`, so walk up three levels.
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../../dist")
+            .join("../../../dist")
             .to_string_lossy()
             .into_owned()
     };

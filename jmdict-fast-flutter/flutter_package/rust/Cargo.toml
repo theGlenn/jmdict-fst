@@ -49,7 +49,7 @@ crate-type = ["lib", "cdylib", "staticlib"]
 # install + init_sdk_cache_dir without an extra cargo flag. FRB doesn't
 # generate FFI shims for `#[cfg]`-gated methods reliably either, so
 # turning it on at the dep level is the predictable path.
-jmdict-fast-ffi = { path = "../../../jmdict-fast-ffi", version = "0.1.3", features = ["install"] }
+jmdict-fast-ffi = { path = "../../../jmdict-fast-ffi", version = "0.1.4", features = ["install"] }
 # Keep FRB's default features on: `dart-opaque` is needed for the `Dict`
 # handle (opaque type passed across the boundary), `rust-async` for the
 # `async fn` methods FRB offloads to a worker thread, `anyhow` for the
