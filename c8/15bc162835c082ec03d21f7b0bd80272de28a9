@@ -1,0 +1,229 @@
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/target.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-140
+jmdict-fast-flutter/flutter_package/lib/src/api/error.dart
+  s_e5745ca407912d::t_dddfceed566a04 11-44
+  s_e5745ca407912d::t_f9657747947904 1-10
+jmdict-fast-flutter/flutter_package/lib/src/frb_generated.web.dart
+  s_e5745ca407912d::t_f9657747947904 1-17,25,28,33,38,43,46,49,52,55,58,61,64,67,70,73,76,79,82,85,88,91,94,97,100,103,106,109,112,115,118,121,124,127,130,133,136,139,142,145,148,151,154,157,160,163,166,169,172,175,178,181,184,187,190,195,200,205,208,211,214,218,221,225,229,233,236,239,242,245,248,251,254,257,260,263,266,269,272,275,278,281,284,287,290,293,297,301,304,307,310,313,316,319,322,326,329,333,336,339,342,345,348,351,354,357,360,365,370,375,378,381,384,388,391,395,399,403,406,409,412,416,419,422,425,428,431,435,438,441,444,448,451,455,458,462,466,470,474,478,482,486,489,492,495,498,501,505,508,512,515,518,521,524,527,530,533,536,540-543
+  s_e5745ca407912d::t_dddfceed566a04 18-24,26-27,29-32,34-37,39-42,44-45,47-48,50-51,53-54,56-57,59-60,62-63,65-66,68-69,71-72,74-75,77-78,80-81,83-84,86-87,89-90,92-93,95-96,98-99,101-102,104-105,107-108,110-111,113-114,116-117,119-120,122-123,125-126,128-129,131-132,134-135,137-138,140-141,143-144,146-147,149-150,152-153,155-156,158-159,161-162,164-165,167-168,170-171,173-174,176-177,179-180,182-183,185-186,188-189,191-194,196-199,201-204,206-207,209-210,212-213,215-217,219-220,222-224,226-228,230-232,234-235,237-238,240-241,243-244,246-247,249-250,252-253,255-256,258-259,261-262,264-265,267-268,270-271,273-274,276-277,279-280,282-283,285-286,288-289,291-292,294-296,298-300,302-303,305-306,308-309,311-312,314-315,317-318,320-321,323-325,327-328,330-332,334-335,337-338,340-341,343-344,346-347,349-350,352-353,355-356,358-359,361-364,366-369,371-374,376-377,379-380,382-383,385-387,389-390,392-394,396-398,400-402,404-405,407-408,410-411,413-415,417-418,420-421,423-424,426-427,429-430,432-434,436-437,439-440,442-443,445-447,449-450,452-454,456-457,459-461,463-465,467-469,471-473,475-477,479-481,483-485,487-488,490-491,493-494,496-497,499-500,502-504,506-507,509-511,513-514,516-517,519-520,522-523,525-526,528-529,531-532,534-535,537-539,544-572
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/build_cmake.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-40
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/build_gradle.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-49
+jmdict-fast-flutter/flutter_package/example/ios/Flutter/Debug.xcconfig
+  s_e5745ca407912d::t_2a770c6b76a8e7 1-2
+jmdict-fast-flutter/flutter_rust_bridge.yaml
+  s_e5745ca407912d::t_4bd0c5cdf3fffe 11-13
+  s_e5745ca407912d::t_994160deb39db1 4,10,14-15
+jmdict-fast-flutter/flutter_package/lib/jmdict_fast.dart
+  s_e5745ca407912d::t_0c9b52c6ab81d3 1-27
+jmdict-fast-flutter/flutter_package/android/build.gradle
+  s_e5745ca407912d::t_206db8f8ea08f3 3-4
+  s_e5745ca407912d::t_8ce75137e4f336 54-56
+  s_e5745ca407912d::t_f4f75509911b3b 1-2,5-28,30-53,57
+  s_e5745ca407912d::t_3ea93398ba5ae6 29
+jmdict-fast-flutter/flutter_package/example/android/app/src/profile/AndroidManifest.xml
+  s_e5745ca407912d::t_5b042b4271095d 1-7
+jmdict-fast-flutter/flutter_package/example/android/app/src/main/kotlin/com/github/theglenn/example/MainActivity.kt
+  s_e5745ca407912d::t_5b042b4271095d 1-5
+jmdict-fast-flutter/flutter_package/example/android/gradle/wrapper/gradle-wrapper.properties
+  s_e5745ca407912d::t_5b042b4271095d 1-5
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/precompile_binaries.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-202
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/util.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-172
+jmdict-fast-flutter/flutter_package/example/macos/Flutter/GeneratedPluginRegistrant.swift
+  s_e5745ca407912d::t_2a770c6b76a8e7 1-12
+jmdict-fast-flutter/flutter_package/lib/src/api/error.freezed.dart
+  s_e5745ca407912d::t_dddfceed566a04 1-1640
+jmdict-fast-flutter/flutter_package/cargokit/cmake/cargokit.cmake
+  s_e5745ca407912d::t_f4f75509911b3b 1-99
+jmdict-fast-flutter/flutter_package/cargokit/run_build_tool.cmd
+  s_e5745ca407912d::t_f4f75509911b3b 1-91
+jmdict-fast-flutter/flutter_package/cargokit/README
+  s_e5745ca407912d::t_f4f75509911b3b 1-11
+jmdict-fast-flutter/flutter_package/example/pubspec.yaml
+  s_e5745ca407912d::t_5b042b4271095d 1,5-6,9-12,20-27
+  s_e5745ca407912d::t_e187c4706e907c 2-4,7-8,13-19
+jmdict-fast-flutter/flutter_package/example/macos/Flutter/Flutter-Release.xcconfig
+  s_e5745ca407912d::t_2a770c6b76a8e7 1-2
+jmdict-fast-flutter/flutter_package/pubspec.yaml
+  s_e5745ca407912d::t_f4f75509911b3b 7-14,19,24-25,27-28,35-48
+  s_e5745ca407912d::t_e32ffd883e6471 1-6,15-18,26
+  s_e5745ca407912d::t_2eee551cc1c789 20-23
+  s_e5745ca407912d::t_96bb9b7184e078 29-34
+jmdict-fast-flutter/flutter_package/example/android/settings.gradle.kts
+  s_e5745ca407912d::t_5b042b4271095d 1-26
+jmdict-fast-flutter/src/lib.rs
+  s_e5745ca407912d::t_363a49cde986c0 5,16,18-19
+  s_e5745ca407912d::t_adbfaa6812ffc4 7-13,17
+jmdict-fast-flutter/flutter_package/.gitignore
+  s_e5745ca407912d::t_f4f75509911b3b 1-29
+jmdict-fast-flutter/flutter_package/example/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+  s_e5745ca407912d::t_5b042b4271095d 1-99
+jmdict-fast-flutter/flutter_package/README.md
+  s_e5745ca407912d::t_1d0d8cd9a6c4a6 1-50
+jmdict-fast-flutter/flutter_package/macos/jmdict_fast.podspec
+  s_e5745ca407912d::t_c389ef3ee8877c 2-43
+jmdict-fast-flutter/flutter_package/lib/src/api/dictionary.dart
+  s_e5745ca407912d::t_dddfceed566a04 12-14,16,18-22,24-25,27-28,30-31,33-34,36-37,39-40,42-43,45,47,49-50,52,54,56-57,59,61-62
+  s_e5745ca407912d::t_f9657747947904 1-11,15,17,23,26,29,32,35,38,41,44,46,48,51,53,55,58,60
+jmdict-fast-flutter/flutter_package/example/.metadata
+  s_e5745ca407912d::t_5b042b4271095d 1-36
+jmdict-fast-flutter/flutter_package/example/macos/Runner/DebugProfile.entitlements
+  s_e5745ca407912d::t_f85f3ff59031aa 11-13
+jmdict-fast-flutter/flutter_package/example/macos/Flutter/Flutter-Debug.xcconfig
+  s_e5745ca407912d::t_2a770c6b76a8e7 1-2
+jmdict-fast-flutter/flutter_package/example/.gitignore
+  s_e5745ca407912d::t_5b042b4271095d 1-45
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/builder.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-198
+jmdict-fast-flutter/flutter_package/ios/Classes/dummy_file.c
+  s_e5745ca407912d::t_f4f75509911b3b 1
+jmdict-fast-flutter/flutter_package/example/android/app/build.gradle.kts
+  s_e5745ca407912d::t_5b042b4271095d 1-44
+jmdict-fast-flutter/flutter_package/example/ios/Runner.xcodeproj/project.pbxproj
+  s_e5745ca407912d::t_5b042b4271095d 1-619
+jmdict-fast-flutter/flutter_package/example/macos/Runner/Release.entitlements
+  s_e5745ca407912d::t_022183f2121764 7-9
+jmdict-fast-flutter/flutter_package/lib/src/api/model.dart
+  s_e5745ca407912d::t_dddfceed566a04 9-251,254-259,262-398
+  s_e5745ca407912d::t_f9657747947904 1-8,252-253,260-261
+jmdict-fast-flutter/flutter_package/cargokit/cmake/resolve_symlinks.ps1
+  s_e5745ca407912d::t_f4f75509911b3b 1-34
+jmdict-fast-flutter/flutter_package/example/README.md
+  s_e5745ca407912d::t_5b042b4271095d 1-16
+jmdict-fast-flutter/flutter_package/example/ios/RunnerTests/RunnerTests.swift
+  s_e5745ca407912d::t_5b042b4271095d 1-12
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/verify_binaries.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-84
+jmdict-fast-flutter/flutter_package/cargokit/gradle/plugin.gradle
+  s_e5745ca407912d::t_f4f75509911b3b 1-179
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/pubspec.yaml
+  s_e5745ca407912d::t_f4f75509911b3b 1-33
+jmdict-fast-flutter/flutter_package/example/android/build.gradle.kts
+  s_e5745ca407912d::t_5b042b4271095d 1-24
+jmdict-fast-flutter/flutter_package/windows/CMakeLists.txt
+  s_e5745ca407912d::t_f4f75509911b3b 1-2,4-5,10,12,14-16
+  s_e5745ca407912d::t_327fcf488ef488 3,6-9,11,13
+jmdict-fast-flutter/flutter_package/android/.gitignore
+  s_e5745ca407912d::t_f4f75509911b3b 1-9
+jmdict-fast-flutter/flutter_package/example/macos/Runner.xcworkspace/contents.xcworkspacedata
+  s_e5745ca407912d::t_2777e72c9f4eea 1-10
+jmdict-fast-flutter/Cargo.toml
+  s_e5745ca407912d::t_9de44a053de8eb 2-7
+  s_e5745ca407912d::t_60799b348f1bd7 18,22-24,29-30
+  s_e5745ca407912d::t_6222725b99b8e1 19-21,25-28
+  s_e5745ca407912d::t_dddfceed566a04 49
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/README.md
+  s_e5745ca407912d::t_f4f75509911b3b 1-5
+jmdict-fast-flutter/flutter_package/example/analysis_options.yaml
+  s_e5745ca407912d::t_5b042b4271095d 1-28
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/build_tool.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-271
+jmdict-fast-flutter/flutter_package/windows/.gitignore
+  s_e5745ca407912d::t_f4f75509911b3b 1-17
+jmdict-fast-flutter/flutter_package/example/ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+  s_e5745ca407912d::t_5b042b4271095d 1-101
+jmdict-fast-flutter/example/rust/Cargo.toml
+  s_e5745ca407912d::t_83192b353bc953 22-26
+  s_e5745ca407912d::t_54342867ccbc1d 3,20
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/analysis_options.yaml
+  s_e5745ca407912d::t_f4f75509911b3b 1-34
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/android_environment.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-195
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/options.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-309
+jmdict-fast-flutter/flutter_package/example/lib/main.dart
+  s_e5745ca407912d::t_f254fe9f3d230f 37-38,49-52,56-57
+  s_e5745ca407912d::t_5b042b4271095d 1,14-15,18-21,24-27,30-31,33-34,41,43,46,67-70,72,74,109-113
+  s_e5745ca407912d::t_8781e36d70ea66 2-13,16-17,22-23,28-29,32,35-36,39-40,42,44-45,47-48,53-55,58-66,71,73,75-102,104,106-108
+  s_e5745ca407912d::t_1100f5e46a1970 103,105
+jmdict-fast-flutter/flutter_package/macos/Classes/dummy_file.c
+  s_e5745ca407912d::t_f4f75509911b3b 1
+jmdict-fast-flutter/flutter_package/example/test/widget_test.dart
+  s_e5745ca407912d::t_5b042b4271095d 1-30
+jmdict-fast-flutter/flutter_package/lib/src/frb_generated.dart
+  s_e5745ca407912d::t_dddfceed566a04 13-14,17-22,24-37,39-47,49-53,55-57,59-61,63-64,66-505,508-869,871-877,879-883,885-889,891-943,945-947,949-2299
+  s_e5745ca407912d::t_f9657747947904 1-12,15-16,23,38,48,54,58,62,65,506-507,870,878,884,890,944,948
+jmdict-fast-flutter/flutter_package/example/android/app/src/debug/AndroidManifest.xml
+  s_e5745ca407912d::t_5b042b4271095d 1-7
+jmdict-fast-flutter/flutter_package/example/ios/Runner/Info.plist
+  s_e5745ca407912d::t_5b042b4271095d 1-49
+jmdict-fast-flutter/flutter_package/android/settings.gradle
+  s_e5745ca407912d::t_ec8bc1db4e0869 1
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/environment.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-68
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/build_pod.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-89
+jmdict-fast-flutter/flutter_package/android/src/main/AndroidManifest.xml
+  s_e5745ca407912d::t_a7642a742850a1 2
+  s_e5745ca407912d::t_f4f75509911b3b 1,3
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/bin/build_tool.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-8
+jmdict-fast-flutter/flutter_package/cargokit/.gitignore
+  s_e5745ca407912d::t_f4f75509911b3b 1-4
+jmdict-fast-flutter/flutter_package/cargokit/build_pod.sh
+  s_e5745ca407912d::t_f4f75509911b3b 1-58
+jmdict-fast-flutter/flutter_package/example/macos/RunnerTests/RunnerTests.swift
+  s_e5745ca407912d::t_5b042b4271095d 1-12
+jmdict-fast-flutter/flutter_package/ios/jmdict_fast.podspec
+  s_e5745ca407912d::t_71bf25072bca86 2-40
+jmdict-fast-flutter/flutter_package/cargokit/run_build_tool.sh
+  s_e5745ca407912d::t_f4f75509911b3b 1-99
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/rustup.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-136
+jmdict-fast-flutter/flutter_package/cargokit/LICENSE
+  s_e5745ca407912d::t_f4f75509911b3b 1-42
+jmdict-fast-flutter/flutter_package/example/android/gradle.properties
+  s_e5745ca407912d::t_5b042b4271095d 1-3
+jmdict-fast-flutter/flutter_package/example/ios/Flutter/Release.xcconfig
+  s_e5745ca407912d::t_2a770c6b76a8e7 1-2
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/logging.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-52
+jmdict-fast-flutter/flutter_package/lib/src/api/install.freezed.dart
+  s_e5745ca407912d::t_dddfceed566a04 1-505
+jmdict-fast-flutter/flutter_package/example/macos/Runner/Configs/AppInfo.xcconfig
+  s_e5745ca407912d::t_5b042b4271095d 1-14
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/artifacts_provider.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-266
+jmdict-fast-flutter/flutter_package/example/macos/Runner.xcodeproj/project.pbxproj
+  s_e5745ca407912d::t_5b042b4271095d 1-23,25-30,32-64,66-69,71-81,84,86,91-97,99-105,107-139,141-187,202-204,207-217,219-236,238-242,244-325,348-384,424-475,477-490,492-505,507-801
+  s_e5745ca407912d::t_2777e72c9f4eea 24,31,65,70,82-83,85,87-90,98,106,140,188-201,205-206,218,237,243,326-347,385-423,476,491,506
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/cargo.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-48
+jmdict-fast-flutter/flutter_package/example/android/app/src/main/AndroidManifest.xml
+  s_e5745ca407912d::t_5b042b4271095d 1,4-47
+  s_e5745ca407912d::t_65967c2d2b5667 2-3
+release-plz.toml
+  s_e5745ca407912d::t_baecb23546d102 38-40,42
+jmdict-fast-flutter/flutter_package/lib/src/frb_generated.io.dart
+  s_e5745ca407912d::t_f9657747947904 1-15,23,26,31,36,41,44,47,50,53,56,59,62,65,68,71,74,77,80,83,86,89,92,95,98,101,104,107,110,113,116,119,122,125,128,131,134,137,140,143,146,149,152,155,158,161,164,167,170,173,176,179,182,185,188,193,198,203,206,209,212,216,219,223,227,231,234,237,240,243,246,249,252,255,258,261,264,267,270,273,276,279,282,285,288,291,295,299,302,305,308,311,314,317,320,324,327,331,334,337,340,343,346,349,352,355,358,363,368,373,376,379,382,386,389,393,397,401,404,407,410,414,417,420,423,426,429,433,436,439,442,446,449,453,456,460,464,468,472,476,480,484,487,490,493,496,499,503,506,510,513,516,519,522,525,528,531,534,538-540
+  s_e5745ca407912d::t_dddfceed566a04 16-22,24-25,27-30,32-35,37-40,42-43,45-46,48-49,51-52,54-55,57-58,60-61,63-64,66-67,69-70,72-73,75-76,78-79,81-82,84-85,87-88,90-91,93-94,96-97,99-100,102-103,105-106,108-109,111-112,114-115,117-118,120-121,123-124,126-127,129-130,132-133,135-136,138-139,141-142,144-145,147-148,150-151,153-154,156-157,159-160,162-163,165-166,168-169,171-172,174-175,177-178,180-181,183-184,186-187,189-192,194-197,199-202,204-205,207-208,210-211,213-215,217-218,220-222,224-226,228-230,232-233,235-236,238-239,241-242,244-245,247-248,250-251,253-254,256-257,259-260,262-263,265-266,268-269,271-272,274-275,277-278,280-281,283-284,286-287,289-290,292-294,296-298,300-301,303-304,306-307,309-310,312-313,315-316,318-319,321-323,325-326,328-330,332-333,335-336,338-339,341-342,344-345,347-348,350-351,353-354,356-357,359-362,364-367,369-372,374-375,377-378,380-381,383-385,387-388,390-392,394-396,398-400,402-403,405-406,408-409,411-413,415-416,418-419,421-422,424-425,427-428,430-432,434-435,437-438,440-441,443-445,447-448,450-452,454-455,457-459,461-463,465-467,469-471,473-475,477-479,481-483,485-486,488-489,491-492,494-495,497-498,500-502,504-505,507-509,511-512,514-515,517-518,520-521,523-524,526-527,529-530,532-533,535-537,541-584
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/build_tool.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-8
+jmdict-fast-flutter/flutter_package/linux/CMakeLists.txt
+  s_e5745ca407912d::t_7d6fc7cfdcf684 3,6-7,9,11-12
+  s_e5745ca407912d::t_f4f75509911b3b 1-2,4-5,8,10,13-15
+jmdict-fast-flutter/flutter_package/cargokit/build_tool/lib/src/crate_hash.dart
+  s_e5745ca407912d::t_f4f75509911b3b 1-124
+jmdict-fast-flutter/flutter_package/lib/src/api/install.dart
+  s_e5745ca407912d::t_f9657747947904 1-11,13,15-19,54-55
+  s_e5745ca407912d::t_dddfceed566a04 12,14,20-53,56-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "c815bc162835c082ec03d21f7b0bd80272de28a9",
+  "prompts": {},
+  "sessions": {
+    "s_e5745ca407912d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "04ad7dc4-1b77-43cd-aed7-9b868482f13e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
