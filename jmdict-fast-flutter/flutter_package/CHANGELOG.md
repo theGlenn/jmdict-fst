@@ -1,11 +1,14 @@
 # Changelog
 
-## 0.1.0
+## 0.1.4
 
-First public release.
+First public release. Version aligned with the underlying
+`jmdict-fast` Rust crate so `Dict.install()` resolves to the
+matching GitHub release tarball without consumers needing to track
+two separate version axes.
 
-- `Dict.install()` — one-call download + extract + load from the matching
-  GitHub release tarball (jmdict-fast 0.1.3, JMdict 3.6.1, format v4).
+- `Dict.install()` — one-call download + extract + load from the
+  matching GitHub release tarball (JMdict 3.6.1, format v4).
 - `Dict.installFromUrl(url)` and `Dict.installFromTarball(path)` for
   self-hosted mirrors and offline use.
 - `initSdkCacheDir(path)` — process-global cache root, first-set-wins.
