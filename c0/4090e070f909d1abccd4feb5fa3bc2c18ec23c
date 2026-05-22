@@ -1,0 +1,21 @@
+jmdict-fast-flutter/flutter_package/rust/tests/smoke.rs
+  s_ebdeda3721d96b::t_b5942ea3708022 20,22
+jmdict-fast-flutter/flutter_package/rust/Cargo.toml
+  s_ebdeda3721d96b::t_bf64e2f5619ef6 52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "c04090e070f909d1abccd4feb5fa3bc2c18ec23c",
+  "prompts": {},
+  "sessions": {
+    "s_ebdeda3721d96b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1cd58cf6-65ef-4036-b6d4-4e6e13a1d337",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
