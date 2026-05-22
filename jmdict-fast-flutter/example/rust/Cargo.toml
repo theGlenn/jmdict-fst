@@ -23,7 +23,7 @@ flutter_rust_bridge = "=2.11.1"
 # crate. This example crate emits its OWN FRB dispatcher code, so the
 # binding's dispatcher would duplicate every `frb_pde_ffi_dispatcher_*`
 # symbol and the linker would reject the binary.
-jmdict_fast_flutter = { path = "../../", default-features = false }
+jmdict_fast_flutter = { path = "../../flutter_package/rust", default-features = false }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

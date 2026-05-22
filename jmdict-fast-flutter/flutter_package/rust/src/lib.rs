@@ -1,9 +1,9 @@
 //! flutter_rust_bridge bindings for jmdict-fast.
 //!
 //! The public Dart-facing API lives in [`api`]. `flutter_rust_bridge_codegen`
-//! scans that module to emit Rust glue (`src/frb_generated.rs`) and Dart
-//! bindings under `flutter_package/lib/src/`. The generated Rust file is
-//! committed (regenerated only on intentional API changes via
+//! scans that module to emit Rust glue (`src/frb_generated.rs` here) and
+//! Dart bindings one directory up at `../lib/src/`. The generated Rust
+//! file is committed (regenerated only on intentional API changes via
 //! `flutter_rust_bridge_codegen generate`) so CI can build the crate from
 //! a fresh checkout without running the tool — cargokit, which drives
 //! cargo from inside the Flutter build, has no first-class hook for

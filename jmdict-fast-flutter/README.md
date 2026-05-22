@@ -20,23 +20,35 @@ This crate is the per-generator consumer of [`jmdict-fast-ffi`](../jmdict-fast-f
 
 ```
 jmdict-fast-flutter/
-├── Cargo.toml                  ← Rust crate with cdylib+staticlib output
-├── flutter_rust_bridge.yaml    ← codegen config
-├── src/
-│   ├── lib.rs                  ← `pub mod api;` + (after first codegen) `mod frb_generated;`
-│   └── api/
-│       ├── mod.rs              ← module entry point FRB scans
-│       ├── dictionary.rs       ← Dict opaque handle + methods
-│       ├── model.rs            ← Records mirrored from the facade
-│       └── error.rs            ← `enum Error` → Dart exception
-├── tests/
-│   └── smoke.rs                ← Rust-side smoke against the exported surface
-└── dart/
-    ├── pubspec.yaml            ← Dart package metadata (`name: jmdict_fast`)
-    └── lib/
-        ├── jmdict_fast.dart    ← Curated public Dart entry point
-        └── src/                ← (generated) — do not hand-edit
+├── example/                              ← FRB-codegen scaffold demo (separate Cargo workspace)
+└── flutter_package/                      ← what gets published to pub.dev as `jmdict_fast`
+    ├── pubspec.yaml                      ← Dart package metadata (`name: jmdict_fast`)
+    ├── lib/
+    │   ├── jmdict_fast.dart              ← Curated public Dart entry point
+    │   └── src/                          ← (generated) — do not hand-edit
+    ├── ios/, macos/, android/, linux/, windows/, cargokit/   ← platform build glue
+    ├── example/                          ← validation app for publish smoke
+    └── rust/                             ← vendored Rust binding crate (standalone Cargo workspace)
+        ├── Cargo.toml                    ← cdylib + staticlib output
+        ├── flutter_rust_bridge.yaml      ← codegen config
+        ├── src/
+        │   ├── lib.rs                    ← `pub mod api;` + `mod frb_generated;`
+        │   └── api/
+        │       ├── mod.rs                ← module entry point FRB scans
+        │       ├── dictionary.rs         ← Dict opaque handle + methods
+        │       ├── install.rs            ← InstallOptions + initSdkCacheDir
+        │       ├── model.rs              ← records mirrored from the facade
+        │       └── error.rs              ← `enum Error` → Dart exception
+        └── tests/smoke.rs                ← Rust-side smoke against the exported surface
 ```
+
+The Rust crate is vendored inside `flutter_package/` so the pub.dev
+tarball is self-contained: cargokit's iOS/macOS/Android/Linux/Windows
+build hooks reach the binding crate at `flutter_package/rust/` without
+leaving the published `.pub-cache` extract. The crate is a **separate
+Cargo workspace**, not a member of the outer `damascus-v1` workspace —
+keep it self-contained (no `version.workspace = true`, no path deps that
+escape the package) so consumers can build it in isolation.
 
 The records in `src/api/model.rs` mirror the facade's types. The mirroring is unavoidable for the same reason as in `jmdict-fast-bolt`: FRB scans this crate's API module, and cross-crate scanning of re-exported types is fragile. Conversions are trivial `From` impls.
 
@@ -65,15 +77,17 @@ FRB v2 runs `async fn` on a worker thread pool by default, so the async methods 
 # Install the codegen once.
 cargo install flutter_rust_bridge_codegen
 
-# From this crate's root:
+# From the binding crate root:
+cd jmdict-fast-flutter/flutter_package/rust
 flutter_rust_bridge_codegen generate
 # or, while developing:
 flutter_rust_bridge_codegen generate --watch
 ```
 
-After the first run, add `mod frb_generated;` below `pub mod api;` in `src/lib.rs` so the generated glue is part of the crate's compilation unit.
-
-The generated Dart code lands under `dart/lib/src/`. The hand-curated `dart/lib/jmdict_fast.dart` then `export`s the pieces of that surface that consumers should see.
+The generated Dart code lands one directory up under
+`flutter_package/lib/src/`. The hand-curated
+`flutter_package/lib/jmdict_fast.dart` then `export`s the pieces of that
+surface that consumers should see.
 
 ## Building the native library for the host app
 

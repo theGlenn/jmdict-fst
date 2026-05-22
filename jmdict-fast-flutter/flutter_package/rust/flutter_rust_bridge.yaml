@@ -1,15 +1,18 @@
 # flutter_rust_bridge_codegen reads this file from the Rust crate root.
 # Run `flutter_rust_bridge_codegen generate` (or `--watch`) from this
-# directory to (re)generate `src/frb_generated.rs` and the Dart bindings
-# under `flutter_package/lib/src/`.
+# directory (`jmdict-fast-flutter/flutter_package/rust/`) to (re)generate
+# `src/frb_generated.rs` and the Dart bindings under
+# `flutter_package/lib/src/`.
 #
 # After the first run, add `mod frb_generated;` to `src/lib.rs` so the
 # generated glue is part of the build.
 
 rust_input: crate::api
-dart_output: flutter_package/lib/src
-# Default `rust_root` is `./rust/`, but our binding crate lives at the
-# workspace member root (./), so override.
+# Dart output lives one directory up — Rust crate is at `flutter_package/rust/`,
+# Dart at `flutter_package/lib/`.
+dart_output: ../lib/src
+# Default `rust_root` is `./rust/`, but FRB is being run from inside the
+# binding crate itself, so override to `.`.
 rust_root: .
 # Generated Dart lives under `lib/src/` so the public re-exports in
 # `lib/jmdict_fast.dart` curate what consumers actually import.

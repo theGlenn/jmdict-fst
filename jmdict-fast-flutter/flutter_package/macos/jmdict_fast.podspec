@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'jmdict_fast'
-  s.version          = '0.1.0'
+  s.version          = '0.1.5'
   s.summary          = 'Blazing-fast Japanese dictionary engine for Flutter (FRB).'
   s.description      = <<-DESC
 JMdict-based Japanese dictionary with FST-indexed lookup, gloss reverse
@@ -28,9 +28,9 @@ jmdict-fast Rust engine via flutter_rust_bridge.
   s.script_phase = {
     :name => 'Build Rust library',
     # Args: (1) path to the cargo crate, (2) cargo lib name (with
-    # underscores). The crate sits two levels up from
-    # `flutter_package/macos/` — straight at the binding crate root.
-    :script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../../ jmdict_fast_flutter',
+    # underscores). The crate is vendored at `flutter_package/rust/` so
+    # it ships inside the published pub.dev tarball.
+    :script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../rust/ jmdict_fast_flutter',
     :execution_position => :before_compile,
     :input_files => ['${BUILT_PRODUCTS_DIR}/cargokit_phony'],
     :output_files => ["${BUILT_PRODUCTS_DIR}/libjmdict_fast_flutter.a"],

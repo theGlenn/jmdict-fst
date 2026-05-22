@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:jmdict_fast/jmdict_fast.dart';
-import 'package:path_provider/path_provider.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await RustLib.init();
-  // Register a writable cache dir for `Dict.install`. The Rust resolver
-  // errors loudly on sandboxed platforms when this isn't set, so do it
-  // before anything touches the install path.
-  final dir = await getApplicationSupportDirectory();
-  initSdkCacheDir(path: dir.path);
+  // `JmdictFast.install()` handles `WidgetsFlutterBinding.ensureInitialized()`,
+  // `RustLib.init()`, cache-directory discovery, and the install in one call.
   runApp(const _App());
 }
 
@@ -34,7 +28,7 @@ class _Home extends StatefulWidget {
 
 class _HomeState extends State<_Home> {
   Dict? _dict;
-  BigInt? _entryCount;
+  int? _entryCount;
   int? _hitsForCat;
   String? _error;
   bool _busy = false;
@@ -45,10 +39,10 @@ class _HomeState extends State<_Home> {
       _error = null;
     });
     try {
-      final dict = await Dict.install();
+      final dict = await JmdictFast.install();
       // FRB lookups are all `Future`s — they run on a worker isolate so
       // the install + first query don't stall the UI.
-      final count = await dict.entryCount();
+      final count = await dict.entryCountInt();
       final hits = await dict.lookupExact(term: '猫');
       if (!mounted) return;
       setState(() {

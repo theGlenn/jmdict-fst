@@ -4,7 +4,6 @@ members = [
     "jmdict-fast",
     "jmdict-fast-bolt",
     "jmdict-fast-ffi",
-    "jmdict-fast-flutter",
     "xtask",
 ]
 resolver = "2"

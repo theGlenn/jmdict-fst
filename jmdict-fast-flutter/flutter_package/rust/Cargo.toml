@@ -1,15 +1,24 @@
+# Standalone Rust workspace — intentionally NOT a member of the outer
+# `damascus-v1` workspace. The crate ships inside the pub.dev tarball,
+# where the outer workspace is unreachable, so it must be self-contained.
+# In monorepo dev you build it from `flutter_package/rust/` (or via the
+# Flutter build, which cargokit drives).
+[workspace]
+
 [package]
 # Rust crate name uses underscores so cargokit's lib-name conventions
 # work without a custom override (cargo parses the package name as-is
 # and tries to use it for `libXXX.a`; cargokit doesn't dash→underscore
-# convert, so dashes break the macOS/iOS build). The crate directory
-# is still `jmdict-fast-flutter/` for filesystem readability.
+# convert, so dashes break the macOS/iOS build). The crate lives inside
+# `flutter_package/rust/` so it ships with the published pub.dev tarball
+# — cargokit's macOS/iOS/Android/Linux/Windows build steps reach it via
+# a relative path that stays inside the package.
 name = "jmdict_fast_flutter"
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
+version = "0.1.5"
+edition = "2021"
+authors = ["Glenn Sonna <theGlenn@users.noreply.github.com>"]
+license = "MIT"
+repository = "https://github.com/theGlenn/jmdict-fst"
 description = "flutter_rust_bridge bindings for jmdict-fast — Rust side of the Flutter/Dart SDK"
 keywords = ["japanese", "dictionary", "jmdict", "flutter", "dart"]
 categories = ["text-processing", "internationalization"]
@@ -40,7 +49,7 @@ crate-type = ["lib", "cdylib", "staticlib"]
 # install + init_sdk_cache_dir without an extra cargo flag. FRB doesn't
 # generate FFI shims for `#[cfg]`-gated methods reliably either, so
 # turning it on at the dep level is the predictable path.
-jmdict-fast-ffi = { path = "../jmdict-fast-ffi", version = "0.1.3", features = ["install"] }
+jmdict-fast-ffi = { path = "../../../jmdict-fast-ffi", version = "0.1.3", features = ["install"] }
 # Keep FRB's default features on: `dart-opaque` is needed for the `Dict`
 # handle (opaque type passed across the boundary), `rust-async` for the
 # `async fn` methods FRB offloads to a worker thread, `anyhow` for the

@@ -1,7 +1,7 @@
 # Pub.dev complains about checked-in files that .gitignore covers; an
 # explicit .pubignore tells the publisher to skip them while keeping
 # them present locally for developers running the example. These are
-# all regeneratable Flutter / Cocoapods state.
+# all regeneratable Flutter / Cocoapods / Cargo state.
 example/.dart_tool/
 example/build/
 example/pubspec.lock
@@ -12,3 +12,8 @@ example/macos/Podfile.lock
 example/android/.gradle/
 example/android/build/
 example/android/app/build/
+
+# Cargo build artefacts for the vendored Rust crate. The source under
+# `rust/src/` and `rust/Cargo.toml` IS published — the build output is not.
+rust/target/
+rust/Cargo.lock
