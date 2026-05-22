@@ -35,9 +35,10 @@ name = "jmdict-fast-bolt"
 release = false
 publish = false
 
-# jmdict-fast-flutter: ships via pub.dev (Dart package) + Flutter plugin,
-# not crates.io.
+# jmdict_fast_flutter: ships via pub.dev (Dart package) + Flutter plugin,
+# not crates.io. Underscore name matches cargo's lib-name convention so
+# cargokit's macOS / iOS build steps locate `libjmdict_fast_flutter.a`.
 [[package]]
-name = "jmdict-fast-flutter"
+name = "jmdict_fast_flutter"
 release = false
 publish = false

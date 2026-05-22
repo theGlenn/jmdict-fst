@@ -1,5 +1,10 @@
 [package]
-name = "jmdict-fast-flutter"
+# Rust crate name uses underscores so cargokit's lib-name conventions
+# work without a custom override (cargo parses the package name as-is
+# and tries to use it for `libXXX.a`; cargokit doesn't dash→underscore
+# convert, so dashes break the macOS/iOS build). The crate directory
+# is still `jmdict-fast-flutter/` for filesystem readability.
+name = "jmdict_fast_flutter"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -9,6 +14,19 @@ description = "flutter_rust_bridge bindings for jmdict-fast — Rust side of the
 keywords = ["japanese", "dictionary", "jmdict", "flutter", "dart"]
 categories = ["text-processing", "internationalization"]
 publish = false
+
+[features]
+# `frb-generated` compiles in the FRB-generated dispatcher code. On by
+# default because the published `flutter_package` is the canonical
+# consumer of this crate and needs the dispatcher symbols.
+#
+# Downstream Rust crates that re-use jmdict_fast_flutter's *types* but
+# generate their own FRB code (the demo at example/rust/, or any
+# custom shim) must turn it off via `default-features = false`,
+# otherwise both crates emit the same `frb_pde_ffi_dispatcher_*`
+# symbols and the linker rejects the binary.
+default = ["frb-generated"]
+frb-generated = []
 
 [lib]
 # `lib` lets us run `cargo test` against the API module from regular Rust.
@@ -28,7 +46,7 @@ jmdict-fast-ffi = { path = "../jmdict-fast-ffi", version = "0.1.3", features = [
 # `async fn` methods FRB offloads to a worker thread, `anyhow` for the
 # generator's error plumbing. Trimming defaults breaks codegen for any
 # non-trivial API surface.
-flutter_rust_bridge = "2"
+flutter_rust_bridge = "=2.11.1"
 
 [dev-dependencies]
 # Tiny blocking executor so smoke tests can `await` the async surface

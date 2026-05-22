@@ -1,0 +1,48 @@
+name: jmdict_fast
+description: "Blazing-fast Japanese dictionary engine for Flutter — FST-indexed lookup, gloss reverse search, deinflection, one-call install."
+version: 0.1.0
+homepage: https://github.com/theGlenn/jmdict-fst
+repository: https://github.com/theGlenn/jmdict-fst
+issue_tracker: https://github.com/theGlenn/jmdict-fst/issues
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_rust_bridge: 2.11.1
+  # plugin_platform_interface is the standard contract every Flutter
+  # plugin implements; required even for FFI-only plugins because
+  # pub.dev validates its presence in the analysis pass.
+  plugin_platform_interface: ^2.0.2
+  # freezed_annotation is the runtime companion to the dev-time freezed
+  # codegen; FRB emits sealed classes that derive from it, so consumers
+  # need it in their dep tree.
+  freezed_annotation: ^2.4.4
+
+dev_dependencies:
+  flutter_lints: ^2.0.0
+  flutter_test:
+    sdk: flutter
+  # FRB codegen requires freezed for some of its generated enums
+  # (sealed-class style). It's `dev_dependencies` because the generated
+  # `.freezed.dart` files don't reference the package at runtime — only
+  # the codegen step does.
+  freezed: ^2.5.7
+  build_runner: ^2.4.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        ffiPlugin: true
+      ios:
+        ffiPlugin: true
+      linux:
+        ffiPlugin: true
+      macos:
+        ffiPlugin: true
+      windows:
+        ffiPlugin: true
