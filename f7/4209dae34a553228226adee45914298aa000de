@@ -1,0 +1,25 @@
+jmdict-fast-flutter/flutter_package/.pubignore
+  s_e5745ca407912d::t_9edb5846119131 1-14
+jmdict-fast-flutter/flutter_package/CHANGELOG.md
+  s_e5745ca407912d::t_2070915ffafd72 1-22
+jmdict-fast-flutter/flutter_package/pubspec.yaml
+  s_e5745ca407912d::t_47af19ae19bd2f 15-17
+jmdict-fast-flutter/flutter_package/LICENSE
+  s_e5745ca407912d::t_4f4f628efa3b14 1-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "f74209dae34a553228226adee45914298aa000de",
+  "prompts": {},
+  "sessions": {
+    "s_e5745ca407912d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "04ad7dc4-1b77-43cd-aed7-9b868482f13e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
