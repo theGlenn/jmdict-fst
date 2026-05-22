@@ -12,7 +12,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_rust_bridge: 2.11.1
+  # Caret range, not an exact pin: pub.dev penalises packages that
+  # tightly bound their deps, and FRB is API-stable within 2.x.
+  flutter_rust_bridge: ^2.11.1
   # plugin_platform_interface is the standard contract every Flutter
   # plugin implements; required even for FFI-only plugins because
   # pub.dev validates its presence in the analysis pass.
