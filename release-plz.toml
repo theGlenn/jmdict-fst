@@ -21,13 +21,6 @@ name = "xtask"
 release = false
 publish = false
 
-# jmdict-fast-ffi: facade crate; not on crates.io until at least one
-# per-generator wrapper ships a real consumer.
-[[package]]
-name = "jmdict-fast-ffi"
-release = false
-publish = false
-
 # jmdict-fast-bolt: ships via `boltffi pack` to Swift/Kotlin/Java/C#/WASM,
 # not crates.io.
 [[package]]
