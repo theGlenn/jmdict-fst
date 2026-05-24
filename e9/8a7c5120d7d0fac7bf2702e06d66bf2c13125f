@@ -1,0 +1,32 @@
+jmdict-fast-flutter/flutter_package/pubspec.yaml
+  s_ebdeda3721d96b::t_7625df6d5bab07 3
+jmdict-fast-flutter/flutter_package/CHANGELOG.md
+  s_ebdeda3721d96b::t_8de5ba60182c7e 3-15
+jmdict-fast-flutter/flutter_package/ios/jmdict_fast.podspec
+  s_ebdeda3721d96b::t_65112cfcde01db 7
+jmdict-fast-flutter/flutter_package/android/build.gradle
+  s_ebdeda3721d96b::t_7c8730b7160731 4
+jmdict-fast-flutter/flutter_package/rust/Cargo.toml
+  s_ebdeda3721d96b::t_c9cb70a8121c6e 17
+  s_ebdeda3721d96b::t_d17dbccb3af895 52-60
+jmdict-fast-flutter/flutter_package/rust/Cargo.lock
+  ai_agent 152,154,719-721,739-741,748
+jmdict-fast-flutter/flutter_package/macos/jmdict_fast.podspec
+  s_ebdeda3721d96b::t_253f3521f93fdd 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "e98a7c5120d7d0fac7bf2702e06d66bf2c13125f",
+  "prompts": {},
+  "sessions": {
+    "s_ebdeda3721d96b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1cd58cf6-65ef-4036-b6d4-4e6e13a1d337",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
