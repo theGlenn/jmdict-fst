@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.6
+
+- **Fix consumer build (`failed to load manifest for dependency
+  jmdict-fast-ffi`).** The published `rust/Cargo.toml` carried a
+  `path = "../../../jmdict-fast-ffi"` dep that escapes the pub.dev
+  tarball. Cargo doesn't fall back to crates.io when the path is
+  unresolvable (the `version =` next to a path is only used when the
+  crate itself is `cargo publish`-ed, which strips the path; pub.dev
+  doesn't strip). Switched to a pure crates.io dep — now possible
+  because `jmdict-fast-ffi 0.1.5` is published. Dev workflow loses the
+  local-path shortcut: changes to `jmdict-fast-ffi` need a crates.io
+  publish before the flutter crate sees them.
+
 ## 0.1.5
 
 - **Fix broken pub.dev build.** The Rust binding crate now lives at

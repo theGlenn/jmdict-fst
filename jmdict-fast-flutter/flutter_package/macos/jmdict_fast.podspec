@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'jmdict_fast'
-  s.version          = '0.1.5'
+  s.version          = '0.1.6'
   s.summary          = 'Blazing-fast Japanese dictionary engine for Flutter (FRB).'
   s.description      = <<-DESC
 JMdict-based Japanese dictionary with FST-indexed lookup, gloss reverse

@@ -149,9 +149,9 @@ checksum = "5d20789868f4b01b2f2caec9f5c4e0213b41e3e5702a50157d699ae31ced2fcb"
 
 [[package]]
 name = "bunpo"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ec92891d48b222ebda273b02ddd3ec3412cfe0a2e89a32f91505086f61dc526"
+checksum = "0245e8c19fca1e842409bbd293413df5501c35979ce27030df45718d6b26da5f"
 
 [[package]]
 name = "bytemuck"
@@ -716,7 +716,9 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "jmdict-fast"
-version = "0.1.4"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62ff89aeea585b27743d5920342f952bd84b27e363b160b5e6d61e03b170da3c"
 dependencies = [
  "bunpo",
  "deunicode",
@@ -734,14 +736,16 @@ dependencies = [
 
 [[package]]
 name = "jmdict-fast-ffi"
-version = "0.1.4"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4bc137be8d2f4514ab8e6cdb513d8e9d427aadbc0ee7283ab94f3b8f108b88c"
 dependencies = [
  "jmdict-fast",
 ]
 
 [[package]]
 name = "jmdict_fast_flutter"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "flutter_rust_bridge",
  "jmdict-fast-ffi",
