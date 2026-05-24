@@ -243,7 +243,7 @@ checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
 
 [[package]]
 name = "bunpo"
-version = "0.1.5"
+version = "0.1.6"
 
 [[package]]
 name = "bytemuck"
@@ -1191,7 +1191,7 @@ dependencies = [
 
 [[package]]
 name = "jmdict-fast"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "bunpo",
  "criterion",
@@ -1214,7 +1214,7 @@ dependencies = [
 
 [[package]]
 name = "jmdict-fast-bolt"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "boltffi",
  "jmdict-fast-ffi",
@@ -1222,7 +1222,7 @@ dependencies = [
 
 [[package]]
 name = "jmdict-fast-ffi"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "jmdict-fast",
 ]
@@ -2880,7 +2880,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "anyhow",
  "chrono",
