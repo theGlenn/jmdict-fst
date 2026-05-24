@@ -1,0 +1,19 @@
+jmdict-fast-ffi/CHANGELOG.md
+  s_2d1094b9c0d3aa::t_217aa892476de2 20-24,26-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "3a655615e2c94f4fbad248e3013ca9220cdf6c17",
+  "prompts": {},
+  "sessions": {
+    "s_2d1094b9c0d3aa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e8f9481-7b1e-4cbf-a954-9b967173f3dc",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
