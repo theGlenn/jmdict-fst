@@ -19,7 +19,7 @@ embedded = []
 install = ["dep:ureq", "dep:tar", "dep:flate2", "dep:dirs"]
 
 [dependencies]
-bunpo = { path = "../bunpo", version = "0.1.5" }
+bunpo = { path = "../bunpo", version = "0.1.6" }
 deunicode = "1.6.2"
 fst = { version = "0.4.7", features = ["levenshtein"] }
 memmap2 = "0.9.4"

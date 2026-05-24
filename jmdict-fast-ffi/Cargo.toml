@@ -19,4 +19,4 @@ homepage = "https://github.com/theGlenn/jmdict-fst"
 install = ["jmdict-fast/install"]
 
 [dependencies]
-jmdict-fast = { path = "../jmdict-fast", version = "0.1.5" }
+jmdict-fast = { path = "../jmdict-fast", version = "0.1.6" }
