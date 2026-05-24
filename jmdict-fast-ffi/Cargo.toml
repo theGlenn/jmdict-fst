@@ -8,7 +8,8 @@ repository.workspace = true
 description = "FFI-agnostic facade over jmdict-fast (designed for uniffi, flutter_rust_bridge, bolt-ffi, etc.)"
 keywords = ["japanese", "dictionary", "jmdict", "ffi", "uniffi"]
 categories = ["text-processing", "internationalization"]
-publish = false
+documentation = "https://docs.rs/jmdict-fast-ffi"
+homepage = "https://github.com/theGlenn/jmdict-fst"
 
 [features]
 # Forwards to `jmdict-fast/install` so the facade exposes the same
