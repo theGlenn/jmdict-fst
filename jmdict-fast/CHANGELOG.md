@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6](https://github.com/theGlenn/jmdict-fst/compare/jmdict-fast-v0.1.5...jmdict-fast-v0.1.6) - 2026-05-24
+
+### Other
+
+- release v0.1.6 ([#31](https://github.com/theGlenn/jmdict-fst/pull/31))
+
 ## [0.1.5](https://github.com/theGlenn/jmdict-fst/compare/jmdict-fast-v0.1.4...jmdict-fast-v0.1.5) - 2026-05-22
 
 ### Other
