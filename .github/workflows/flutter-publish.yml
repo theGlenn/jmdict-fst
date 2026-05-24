@@ -1,0 +1,78 @@
+name: Publish flutter_package to pub.dev
+
+# Publishes `jmdict-fast-flutter/flutter_package/` (the `jmdict_fast`
+# Dart package) to pub.dev when a `flutter-v*` tag is pushed.
+#
+# Auth: pub.dev OIDC — no long-lived credentials in the repo. One-time
+# setup on https://pub.dev/packages/jmdict_fast/admin:
+#   1. Enable "Automated publishing"
+#   2. Repository: theGlenn/jmdict-fst
+#   3. Tag pattern: flutter-v{{version}}
+#
+# To release:
+#   1. Bump `jmdict-fast-flutter/flutter_package/pubspec.yaml`
+#      (and the podspecs / build.gradle / rust/Cargo.toml versions)
+#   2. Land on main
+#   3. `git tag flutter-v0.1.7 && git push origin flutter-v0.1.7`
+#   4. This workflow validates + publishes
+#
+# Manual fallback: trigger via the "Run workflow" button on the Actions
+# tab, supplying the version explicitly. Useful if a tag was pushed
+# without the workflow firing, or for re-running a failed publish
+# without re-tagging.
+
+on:
+  push:
+    tags: ['flutter-v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (must match pubspec.yaml)'
+        required: true
+        type: string
+
+# id-token: write is what enables pub.dev OIDC. Without this the
+# `pub publish` step gets a 401.
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    name: Publish jmdict_fast
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'theGlenn' }}
+    defaults:
+      run:
+        working-directory: jmdict-fast-flutter/flutter_package
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Resolve target version
+        id: ver
+        run: |
+          if [[ -n "${{ inputs.version }}" ]]; then
+            target="${{ inputs.version }}"
+          else
+            # Strip the `flutter-v` prefix from the tag.
+            target="${GITHUB_REF_NAME#flutter-v}"
+          fi
+          pubspec=$(grep -m1 '^version:' pubspec.yaml | sed -E 's/^version:\s*//')
+          if [[ "$target" != "$pubspec" ]]; then
+            echo "::error::pubspec.yaml version ($pubspec) does not match target ($target)"
+            exit 1
+          fi
+          echo "version=$target" >> "$GITHUB_OUTPUT"
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: flutter pub publish --dry-run
+        run: flutter pub publish --dry-run
+
+      - name: flutter pub publish
+        run: flutter pub publish --force
