@@ -1,6 +1,6 @@
 name: jmdict_fast
 description: "Blazing-fast Japanese dictionary engine for Flutter — FST-indexed lookup, gloss reverse search, deinflection, one-call install."
-version: 0.1.5
+version: 0.1.6
 homepage: https://github.com/theGlenn/jmdict-fst
 repository: https://github.com/theGlenn/jmdict-fst
 issue_tracker: https://github.com/theGlenn/jmdict-fst/issues

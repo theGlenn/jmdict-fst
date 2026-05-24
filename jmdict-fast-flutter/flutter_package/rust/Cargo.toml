@@ -14,7 +14,7 @@
 # — cargokit's macOS/iOS/Android/Linux/Windows build steps reach it via
 # a relative path that stays inside the package.
 name = "jmdict_fast_flutter"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = ["Glenn Sonna <theGlenn@users.noreply.github.com>"]
 license = "MIT"
@@ -49,7 +49,15 @@ crate-type = ["lib", "cdylib", "staticlib"]
 # install + init_sdk_cache_dir without an extra cargo flag. FRB doesn't
 # generate FFI shims for `#[cfg]`-gated methods reliably either, so
 # turning it on at the dep level is the predictable path.
-jmdict-fast-ffi = { path = "../../../jmdict-fast-ffi", version = "0.1.5", features = ["install"] }
+#
+# Crates.io dep only — no `path =` override. Pub.dev publishes this
+# Cargo.toml verbatim; if it carried a path dep, consumer cargo would
+# try to load a manifest outside the .pub-cache extract and fail with
+# `failed to load manifest for dependency jmdict-fast-ffi`. Dev workflow
+# loses the local-path shortcut: changes to jmdict-fast-ffi need a
+# crates.io publish (via release-plz) before the flutter crate sees
+# them.
+jmdict-fast-ffi = { version = "0.1.5", features = ["install"] }
 # Keep FRB's default features on: `dart-opaque` is needed for the `Dict`
 # handle (opaque type passed across the boundary), `rust-async` for the
 # `async fn` methods FRB offloads to a worker thread, `anyhow` for the
