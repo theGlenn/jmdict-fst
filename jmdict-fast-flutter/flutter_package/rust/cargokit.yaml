@@ -24,4 +24,4 @@ precompiled_binaries:
   #   dart bin/build_tool.dart gen-key
   # then paste the "Public Key" value here and add the "Private Key" as the
   # CARGOKIT_PRIVATE_KEY secret on https://github.com/theGlenn/jmdict-fst/settings/secrets/actions
-  public_key: PASTE_PUBLIC_KEY_HERE
+  public_key: cb4903e4e6e5217eec08fc962f925bcd94fdb85421e0f29e1f3bbcf777e57ff2
