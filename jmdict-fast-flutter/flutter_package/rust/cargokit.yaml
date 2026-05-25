@@ -1,0 +1,27 @@
+# Cargokit per-crate options.
+#
+# `precompiled_binaries` opts this package into cargokit's prebuilt-binary
+# distribution mode. At consumer build time cargokit:
+#
+#   1. Hashes the contents of this crate (`flutter_package/rust/`).
+#   2. Downloads `${url_prefix}<hash>/<target>_libjmdict_fast_flutter.{a,so,dll,dylib}`
+#      + matching `.sig` from the GitHub Release tagged `precompiled_<hash>`.
+#   3. Verifies the ed25519 signature against `public_key`.
+#   4. Links the binary — `cargo build` is skipped, rustup is not required.
+#
+# Per-tag binaries are built + uploaded by `.github/workflows/flutter-publish.yml`
+# before pub.dev publish. If a consumer's target is missing from the release
+# (e.g. an unsupported arch), cargokit transparently falls back to building
+# from source.
+#
+# See jmdict-fast-flutter/RELEASING.md for the one-time keypair setup.
+
+precompiled_binaries:
+  url_prefix: https://github.com/theGlenn/jmdict-fst/releases/download/precompiled_
+  # ed25519 public key (32 bytes hex). Generate with:
+  #   cd jmdict-fast-flutter/flutter_package/cargokit/build_tool
+  #   dart pub get
+  #   dart bin/build_tool.dart gen-key
+  # then paste the "Public Key" value here and add the "Private Key" as the
+  # CARGOKIT_PRIVATE_KEY secret on https://github.com/theGlenn/jmdict-fst/settings/secrets/actions
+  public_key: PASTE_PUBLIC_KEY_HERE
