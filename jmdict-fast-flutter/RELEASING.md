@@ -25,9 +25,13 @@ Public Key:  <64 hex chars>
 ```
 
 Treat the private key like a password. **Back it up to 1Password (or
-similar) before doing anything else** — if it's lost you have to rotate
-the public key, which invalidates every binary already published under
-the old key.
+similar) before doing anything else.** Already-published versions
+keep working — their `cargokit.yaml` carries the old public key and
+their binaries are signed by the lost private key. The pain is
+forward-only: you can no longer sign *new* binaries that consumers
+of those old versions would accept, so future releases need a new
+keypair, and consumers pinned to an old version stay on the old key
+until they upgrade.
 
 ### 2. Register the private key as a GitHub secret
 
@@ -112,6 +116,10 @@ If the private key leaks:
    key, old releases keep working with the old signatures (they're
    already cached on consumers).
 
-To force re-verification on the old releases, delete the
-`precompiled_<hash>` GitHub Releases for those versions; existing
-consumers fall through to source build, new consumers get the new key.
+To prevent the compromised binaries from being used at all, delete the
+`precompiled_<hash>` GitHub Releases for the affected versions —
+consumers of those versions then fall back to source build (which needs
+rustup, but stays secure). Consumers who upgrade to the new package
+version automatically pick up the new public key from the new
+`cargokit.yaml`; consumers pinned to a still-published old version that
+you didn't delete continue to use the old key.
