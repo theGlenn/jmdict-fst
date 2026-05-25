@@ -1,0 +1,20 @@
+jmdict-fast-flutter/RELEASING.md
+  s_ebdeda3721d96b::t_f6918ba082f616 28-34
+  s_ebdeda3721d96b::t_768e4289393370 119-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "a2cb17aa8fdcbae9d99d64b8c53df5d93e6b24ad",
+  "prompts": {},
+  "sessions": {
+    "s_ebdeda3721d96b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1cd58cf6-65ef-4036-b6d4-4e6e13a1d337",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
