@@ -3,18 +3,17 @@ name: Publish flutter_package to pub.dev
 # Publishes `jmdict-fast-flutter/flutter_package/` (the `jmdict_fast`
 # Dart package) to pub.dev when a `flutter-v*` tag is pushed.
 #
-# Auth: pub.dev OIDC — no long-lived credentials in the repo. One-time
-# setup on https://pub.dev/packages/jmdict_fast/admin:
-#   1. Enable "Automated publishing"
-#   2. Repository: theGlenn/jmdict-fst
-#   3. Tag pattern: flutter-v{{version}}
+# Two phases:
+#   1. precompile (matrix: macos, ubuntu, windows) — cross-compile the
+#      Rust binding crate for every supported target, sign each artifact
+#      with the cargokit ed25519 private key, and upload to a GitHub
+#      Release tagged `precompiled_<crate-hash>`. Idempotent: re-running
+#      with the same rust source reuses already-uploaded targets.
+#   2. publish — blocks until all precompile jobs succeed, then runs
+#      `flutter pub publish` via pub.dev OIDC.
 #
-# To release:
-#   1. Bump `jmdict-fast-flutter/flutter_package/pubspec.yaml`
-#      (and the podspecs / build.gradle / rust/Cargo.toml versions)
-#   2. Land on main
-#   3. `git tag flutter-v0.1.7 && git push origin flutter-v0.1.7`
-#   4. This workflow validates + publishes
+# One-time setup before the first tagged release: see
+# jmdict-fast-flutter/RELEASING.md.
 #
 # Manual fallback: trigger via the "Run workflow" button on the Actions
 # tab, supplying the version explicitly. Useful if a tag was pushed
@@ -31,16 +30,109 @@ on:
         required: true
         type: string
 
-# id-token: write is what enables pub.dev OIDC. Without this the
-# `pub publish` step gets a 401.
 permissions:
+  # id-token: write enables pub.dev OIDC for the publish job (without it
+  # the publish step gets a 401).
   id-token: write
-  contents: read
+  # contents: write lets the precompile jobs create + upload to the
+  # `precompiled_<hash>` GitHub Release.
+  contents: write
 
 jobs:
+  precompile-darwin:
+    name: Precompile (iOS + macOS)
+    runs-on: macos-latest
+    if: ${{ github.repository_owner == 'theGlenn' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dart-lang/setup-dart@v1
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: cargokit build_tool deps
+        working-directory: jmdict-fast-flutter/flutter_package/cargokit/build_tool
+        run: dart pub get
+
+      - name: Precompile (iOS + macOS targets)
+        working-directory: jmdict-fast-flutter/flutter_package/cargokit/build_tool
+        env:
+          PRIVATE_KEY: ${{ secrets.CARGOKIT_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dart bin/build_tool.dart precompile-binaries \
+            --manifest-dir=../../rust \
+            --repository=${{ github.repository }} \
+            --verbose
+
+  precompile-linux:
+    name: Precompile (Android + Linux)
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'theGlenn' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dart-lang/setup-dart@v1
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: nttld/setup-ndk@v1
+        id: ndk
+        with:
+          ndk-version: r26d
+
+      - name: cargokit build_tool deps
+        working-directory: jmdict-fast-flutter/flutter_package/cargokit/build_tool
+        run: dart pub get
+
+      - name: Precompile (Linux + Android targets)
+        working-directory: jmdict-fast-flutter/flutter_package/cargokit/build_tool
+        env:
+          PRIVATE_KEY: ${{ secrets.CARGOKIT_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+        run: |
+          dart bin/build_tool.dart precompile-binaries \
+            --manifest-dir=../../rust \
+            --repository=${{ github.repository }} \
+            --android-sdk-location="$ANDROID_HOME" \
+            --android-ndk-version=r26d \
+            --android-min-sdk-version=19 \
+            --verbose
+
+  precompile-windows:
+    name: Precompile (Windows)
+    runs-on: windows-latest
+    if: ${{ github.repository_owner == 'theGlenn' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dart-lang/setup-dart@v1
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: cargokit build_tool deps
+        working-directory: jmdict-fast-flutter/flutter_package/cargokit/build_tool
+        run: dart pub get
+
+      - name: Precompile (Windows target)
+        working-directory: jmdict-fast-flutter/flutter_package/cargokit/build_tool
+        env:
+          PRIVATE_KEY: ${{ secrets.CARGOKIT_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dart bin/build_tool.dart precompile-binaries `
+            --manifest-dir=../../rust `
+            --repository=${{ github.repository }} `
+            --verbose
+
   publish:
     name: Publish jmdict_fast
     runs-on: ubuntu-latest
+    # Block until every target binary is signed + uploaded. A failure in
+    # any precompile job means pub.dev consumers would fall back to source
+    # build for that target — defeats the whole point — so refuse to ship.
+    needs: [precompile-darwin, precompile-linux, precompile-windows]
     if: ${{ github.repository_owner == 'theGlenn' }}
     defaults:
       run:
