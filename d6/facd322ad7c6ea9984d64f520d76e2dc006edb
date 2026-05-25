@@ -1,0 +1,23 @@
+.github/workflows/flutter-publish.yml
+  s_ebdeda3721d96b::t_750b6d2a755452 6-13,15-16,34-35,37-39,42-128,132-135
+jmdict-fast-flutter/flutter_package/rust/cargokit.yaml
+  s_ebdeda3721d96b::t_d3bb4f007e488d 1-27
+jmdict-fast-flutter/RELEASING.md
+  s_ebdeda3721d96b::t_7f05ab81176ee3 1-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "d6facd322ad7c6ea9984d64f520d76e2dc006edb",
+  "prompts": {},
+  "sessions": {
+    "s_ebdeda3721d96b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1cd58cf6-65ef-4036-b6d4-4e6e13a1d337",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
